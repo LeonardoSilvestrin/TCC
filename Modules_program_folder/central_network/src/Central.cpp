@@ -125,7 +125,7 @@ void listen_to_server()
   }
 }
 
-void reconnect() 
+bool reconnect() 
 {
   unsigned long connection_timeout_timer = millis();
   Serial.println("Reconectando ao servidor MQTT");
@@ -155,14 +155,58 @@ void reconnect()
      //connecting to a mqtt broker
     // publish and subscribe
     client.publish(topic, "Central Online");
+    return 1;
   }
   else
   {
     Serial.print("failed, rc=");
     Serial.println(client.state());
+    return 0;
   }
 }
 
+int reconnect_all()
+//retorna 0 -> tudo desconectado
+//retorna 1-> wifi conectado;
+//retorna 2-> wifi e servidor conectado; 
+//retorna 3 ->wifi conectado, status do servidor desconhecido;
+{
+    if (WiFi.status() != WL_CONNECTED) 
+    { 
+      unsigned long startTime_wifi = millis();
+      unsigned long Timeout_wifi = 10000; 
+      Serial.print("Tentando reconectar ao WiFi");
+      while (WiFi.status() != WL_CONNECTED && millis() - startTime_wifi < Timeout_wifi) 
+      {
+        delay(1000);
+        Serial.print(".");
+        yield();
+        ESP.wdtFeed();
+      }
+      if (WiFi.status() == WL_CONNECTED)
+        {
+        Serial.println(""); 
+        Serial.println("Wi-fi conectado com sucesso.");
+        Serial.println("Estabelecendo conexão com o MQTT broker.");
+        
+        client.setServer(mqtt_broker, mqtt_port);
+        client.setCallback(callback);
+        unsigned long lastReconnectAttempt = millis();
+        while(millis() - lastReconnectAttempt < 1000) 
+        {
+          if(reconnect()){return 2;}
+          lastReconnectAttempt = millis();
+        }
+        return 1;
+      }
+      else
+      {
+        return 0;
+        Serial.println("Falha em conectar, operando offline.");
+      }
+    }
+    return 3;
+  }
 //---------------------------------------------< configurando fila de dados para sevidor >----------------------------------------------------------------------------------
 
 const int TAMANHO_FILA = 254;
@@ -797,7 +841,7 @@ bool process_c_message(RF24NetworkHeader header)
         return 1;
       }
     } 
-  Serial.println("NÃO DEVIA TER CHEGADO AQUI");
+  Serial.println("Sem resposta do módulo solicitante.");
   return 0;
 }
 
@@ -906,6 +950,9 @@ bool change_irrigation_status(int id_irrigador)
   }
 }
 
+
+
+
 void setup() 
 {
   ESP.wdtDisable();
@@ -944,19 +991,19 @@ void setup()
   }
   if (WiFi.status() == WL_CONNECTED)
   {
-  Serial.println(""); 
-  Serial.println("Wi-fi conectado com sucesso.");
-  Serial.println("Estabelecendo conexão com o MQTT broker.");
-  
-  client.setServer(mqtt_broker, mqtt_port);
-  client.setCallback(callback);
-  
-  unsigned long startTime_server = millis();
-  unsigned long Timeout_server = 10000;
-  // Tenta conectar ao WiFi por até 10 segundos
+    Serial.println(""); 
+    Serial.println("Wi-fi conectado com sucesso.");
+    Serial.println("Estabelecendo conexão com o MQTT broker.");
+    
+    client.setServer(mqtt_broker, mqtt_port);
+    client.setCallback(callback);
+    
+    unsigned long startTime_server = millis();
+    unsigned long Timeout_server = 10000;
+    // Tenta conectar ao WiFi por até 10 segundos
     while (!client.connected() && millis() - startTime_server < Timeout_server) 
     {
-      reconnect();
+      if(reconnect()){break;}
     }
   }
   else{Serial.println("Wi-Fi desconectado, iniciando modo offline.");}
@@ -964,18 +1011,19 @@ void setup()
 
 
 int irr_id = 1;
+unsigned long tempo_ultima_tentativa = 0;
+  
 void loop() 
 { 
   mesh.update();
   mesh.DHCP();
   client.loop();
-  if (WiFi.status() != WL_CONNECTED) 
+  unsigned long tempo_inicio_reconexao = millis();
+  unsigned long intervalo = 20000;
+  if(tempo_inicio_reconexao-tempo_ultima_tentativa>intervalo)
   {
-    unsigned long lastReconnectAttempt = millis();
-    while(millis() - lastReconnectAttempt > 1000) {
-      reconnect();
-      lastReconnectAttempt = millis();
-    }
+    if (WiFi.status() != WL_CONNECTED || !client.connected()){reconnect_all();}
+    tempo_ultima_tentativa = millis();
   }
   listen_to_server();
   if (strcmp(server_online, "01") == 0 || strcmp(server_online, "11") == 0)
