@@ -1,0 +1,10 @@
+header 'c': config
+
+Utilização: mensagem de (c)onfiguração dos endereços dos módulos.
+
+conteúdo:	
+	módulos -> central: int mensagem[] = {<tipo>,id}
+		<tipo> = (int)'s' para módulo (s)ensorial
+			 (int)'i' para módulo de (i)rrigação
+	
+	central -> módulos: int mensagem = id

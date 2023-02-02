@@ -1,0 +1,10 @@
+header 'v': validation
+
+utilização:
+	utilizado para (v)alidar um id
+	
+conteúdo:	
+	módulos -> central: int mensagem = id
+	
+	central -> módulos: bool mensagem = 0 -> id inválido
+					    1 -> id válido

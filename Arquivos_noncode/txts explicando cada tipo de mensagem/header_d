@@ -1,0 +1,9 @@
+header 'd': data
+
+utilização:
+	utilizar para enviar (d)ados
+	
+conteúdo:	
+	módulos -> central: int mensagem[] = {bateria, umidade, temperatura}
+	
+	central -> módulos: None

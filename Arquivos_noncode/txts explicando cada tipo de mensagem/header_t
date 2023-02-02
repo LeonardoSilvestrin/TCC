@@ -1,0 +1,13 @@
+header 't': time
+
+utilização:
+	utilizado para saber a quanto (t)empo o módulo está conectado na rede
+	tempo é contado em ciclos de leitura feitos pela central nesse módulo, ou seja, conta quantas mensagens do tipo 'data' o módulo já enviou para a central.
+	
+conteúdo:	
+	módulos -> central: uint64_t mensagem = data_counter 
+	
+	central -> módulos: bool mensagem = 1 
+	Se um periférico recebe uma mensagem do tipo 't' da central significa que ela está solicitando que o mesmo envie o número de ciclos (data_counter) armazenado no módulo.
+	
+	Essa função é utilizada para distinguir módulos que tenham ficado com id's iguais por erros de operação por parte do usuário.
