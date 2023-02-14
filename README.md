@@ -10,3 +10,4 @@ tx_pingpong -- código para o transmissor arduino UNO
 
     Nova implementação: dessa vez, vou tentar fazer uma comunicação ping pong, 
     onde o transmissor envia uma string, espera resposta para em seguida mandar o inteiro separadamente.
+
