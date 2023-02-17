@@ -12,8 +12,7 @@ int contador = 0;
 
 struct pacote{
   int contador;
-  int mensagem = 20;
-  //char mensagem[20];
+  char mensagem[20];
 };
 void setup()
 {
@@ -38,10 +37,10 @@ void loop()
   contador++;
   pacote mensagemEnviar;
   mensagemEnviar.contador = contador;
-  //strcpy(mensagemEnviar.mensagem, " Hello World");
+  strcpy(mensagemEnviar.mensagem, " Hello World");
   radio.write(&mensagemEnviar, sizeof(mensagemEnviar));
   char buffer[50];
-  sprintf(buffer,"%d - %d",mensagemEnviar.contador,mensagemEnviar.mensagem);
+  sprintf(buffer,"%d - %s",mensagemEnviar.contador,mensagemEnviar.mensagem);
   Serial.println(buffer);
-  delay(2000);/*
+  delay(2000);
 }

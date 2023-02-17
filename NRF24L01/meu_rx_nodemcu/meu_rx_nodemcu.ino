@@ -12,8 +12,7 @@ int contador = 0;
 
 struct pacote{
   int contador;
-  int mensagem = 20;
-  //char mensagem[20];
+  char mensagem[20];
 };
 
 void setup()
@@ -41,8 +40,7 @@ void loop()
     pacote mensagemRecebida;
     radio.read(&mensagemRecebida,sizeof(mensagemRecebida));
     char buffer[50];
-    sprintf(buffer,"%d - %d",mensagemRecebida.contador,mensagemRecebida.mensagem);
-    Serial.println(mensagemRecebida.contador);
-    Serial.println(mensagemRecebida.mensagem);/*
-  }
+    sprintf(buffer,"%d - %s",mensagemRecebida.contador,mensagemRecebida.mensagem);
+    Serial.println(buffer);
+    }
 }
