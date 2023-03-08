@@ -1,0 +1,21 @@
+TCC - definir o tema e ver se conseguimos apresentar no final do ano mesmo
+
+-Temas:
+	- Domótica
+	- Aplicações Industriais 
+	- Agro
+	- IoT
+
+- Não precisa definir o tema, só procurar algo que seja estratégico
+	- pesquisar o que já foi feito
+	- cuidado com a base de dados para não acontecer como da primeira vez 
+	- aplicações das ferramentas já disponíveis como mediapipe
+
+O tcc deve englobar mais de uma disciplina
+
+
+Para o meio do ano: da pra apresentar no meio do ano que vem sim.
+
+	- Definir o projeto e começar a escrever o mínimo
+	- Projeto tem de estar meio encaminhado, não precisa ter nada de concreto além do plano
+

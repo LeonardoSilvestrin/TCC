@@ -1,0 +1,39 @@
+- Etapa 0 - Preparação: 2-3 meses
+	- Estudar:	
+		Arduino, Rapsberry pi, esp32; #Hardware (suficiente pra 2)
+		protocolos de comunicação IoT, NodeRed, comunicação wireless; #software
+		Alimentação de microcontroladores com baterias de lítio, conversores CC-CC, carregamento de bateria de lítio #hardware
+	- Definição concreta de Hardware e Software a ser utilizado no projeto
+- Etapa 1 - Comunicação: 2-3 meses
+	- Adquirir os micros e os sensores
+	- Começar a construção dos módulos em protoboard:
+		Módulo central:
+			Estabelecer a comunicação do Rapsberry Pi com os ESP32
+			Estabelecer a comunicação do Rapsberry Pi com a Nuvem
+			Estabelecer a comunicação do Rapsberry Pi com o Bot do telegram
+		Módulos de Sensoriamento:
+			Estabelecer a comunicação dos sensores com o ESP32
+			Estabelecer a comunicação dos ESP32 com o módulo central
+		Módulo de Vigilância:
+			Estabelecer a comunicação da câmera IP com o ESP32 ou diretamente com o Rapsberry Pi se possível
+		Módulo de Irrigação:
+			Estabelecer o controle do ESP32 sobre a válvula solenoide e comunicação com sensor de fluxo
+- Etapa 2 - Prototipagem: 3-4 meses
+	- Planejar como pode ser feito o encapsulamento físico de cada módulo (impressora 3D)
+		Módulo central:
+			IHM
+			Parafusado na parede
+		Módulos de Sensoriamento:
+			Fincados no solo
+			a prova d'agua e anticorrosivo
+		Módulo de irrigação:
+			Parafusado proximo a torneira
+	- Estruturar a alimentação dos módulos para operação independente:
+		alimentação com bateria de lítio para cada módulo:
+			leitura do nível da bateria 
+			feedback para o processador 
+			carregamento via micro-usb
+- Etapa 3 - Testes: 2-3 meses
+
+	- Testar a integração do sistema na prática, instalar na horta do alojamento.
+	- Apresentação do projeto, defesa do TCC

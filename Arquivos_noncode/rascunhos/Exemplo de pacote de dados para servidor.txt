@@ -1,0 +1,35 @@
+modulo_principal:
+
+	Temperatura: X0
+	Bateria: V0
+	Stattus: operante
+	logs: 
+		data: 10/02/2023
+		irrigacao: inicio 10:30:00 - fim 10:45:00 
+		duracao: 15 minutos
+		variacao_humidade_sensor_M1 - X
+		variacao_humidade_sensor_M2 - Y
+		.
+		.
+		.
+			
+	
+modulo_periferico_1:
+
+	Humidade: X1
+	Temperatura: Y1
+	Bateria: V1
+	stattus: operante
+
+modulo_periferico_2:
+
+	Humidade: X2
+	Temperatura: Y2
+	Bateria: V2
+	status: operante
+
+modulo_controle_irr_1:
+
+	status: operante
+	estado: on/off
+	bateria: V3

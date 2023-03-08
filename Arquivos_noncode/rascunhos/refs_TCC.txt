@@ -1,0 +1,41 @@
+Automated Watering and Irrigation
+System using Arduino UNO - https://www.researchgate.net/profile/Vighnesh-Patil/publication/343675925_Automated_Watering_and_Irrigation_System_using_Arduino_UNO/links/5f3806cf458515b729232214/Automated-Watering-and-Irrigation-System-using-Arduino-UNO.pdf
+
+%=======================================================================================================================================
+
+Internet of Things based Smart Irrigation Motor
+System - https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9591925
+
+
+%=======================================================================================================================================
+
+IoT Based Greenhouse Environment Monitoring
+and Smart Irrigation System for Precision Farming
+Technology - https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9775852
+
+%=======================================================================================================================================
+
+Proposal for the Design of Monitoring and Operating
+Irrigation Networks Based on IoT, Cloud Computing
+and Free Hardware Technologies - baixei esse 
+
+%=======================================================================================================================================
+
+Solar Water Pumping System Control Using a Low
+Cost ESP32 Microcontroller - https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=8447749
+
+
+%=======================================================================================================================================
+LoRa based Smart Irrigation System - https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=8777583
+
+%=======================================================================================================================================
+ 
+Automatic Irrigation System on Sensing
+Soil Moisture Content - https://www.irjet.net/archives/V3/i3/IRJET-V3I340.pdf
+
+%=======================================================================================================================================
+
+
+Cloud based IoT for Smart Garden Watering System using
+Arduino Uno - https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8643207
+

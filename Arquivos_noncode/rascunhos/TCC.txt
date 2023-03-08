@@ -1,0 +1,73 @@
+irrigação Automática 
+	- Válvula solenoide
+	- Arduino(?)
+		Irrigação controlada
+	- Módulos de sensoriamento:
+		- Senosres de fluxo
+			Sistema anti vazamento
+		- Sensores de proximidade
+			Detecção de objetos na área de irrigação
+		- Sensores de temperatura, luminosidade, umidade, nutrientes*
+			Irrigação otimizada
+			*sensores de nutrientes do solo normalmente são caros
+		- Biosensores para monitoramento da fisiologia e crescimento da planta
+			Variação de volume
+			Bioimpedância
+				Conenctração Salina
+			
+Controle Remoto
+	- Roteador
+		Rede local
+	- Rapsberry Pi(?)
+		Comunicação wireless com os módulos de sensoriamento e atuadores de irrigação
+	- ESP32
+	- NodeRed
+	- Bot no telegram
+		Notificar irrigação
+		Notificar Vazamento
+		etc
+	- Controle local 
+		Ativação manual da irrigação
+		
+Alimentação
+	- Bateria de lítio
+	- Recarga com placa solar? - se sobrar tempo
+		Conversor CC-CC
+
+Se sobrar tempo:
+	- Automatizar a alimentação das galinhas
+	Materiais:
+		- Arduino/ESP32
+		- Motores de Passo
+		- Sensores de proximidade ultrassom
+		- Estrutura física
+		- Bateria
+
+
+Materiais:
+	  - Rapsberry Pi - controle geral
+		quantidade: 1
+	  - Arduino/ESP32 (provavelmente o mini) - Controle da irrigação, ativação da válvula solenóide
+		quantidade: 1 por sensor
+	  - Válvula solenóide - ativa a irrigação
+		quantidade: entre 1 e 4
+	  - Sensores:
+		Sensores de umidade do solo, luz e temperatura - 2 ou 4 de cada por canteiro
+	  - Bateria de lítio:
+		1 por módulo
+	  - Encapsulamento de plástico para os sensores + controlador + bateria
+	  - Circuitagem necessária para coordenar o carregamento e uso da bateria
+
+Matérias envolvidas:
+	- Programação
+	- Microcontroladores
+	- Eletrônica de Potência
+	- Redes de Computadores
+	- Máquinas elétricas
+	- Conversores CC-CC
+	- Controle
+	- Circuitos Eletrônicos
+	- Lógica digital
+	- Org comp		
+
+
