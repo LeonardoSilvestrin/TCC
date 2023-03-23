@@ -4,14 +4,14 @@
 #include <RF24.h>
 
 //create an RF24 object
-RF24 radio(9, 10);  // CE, CSN
+//RF24 radio(9, 10);  // CE, CSN arduino
+RF24 radio(0, 2); // node_mcu
 
 const byte address[6] = "00001";
 int contador = 0;
 float leituras[4];
 
-void setup()
-{
+void setup(){
   Serial.begin(9600);
   delay(2000);
   radio.begin();
@@ -19,6 +19,8 @@ void setup()
   radio.openWritingPipe(address);
   //Set module as receiver
   radio.stopListening();
+  radio.setDataRate(RF24_250KBPS);
+  radio.setPALevel(RF24_PA_MAX);
   Serial.print("Começando transmissão - ");
   Serial.println(radio.isChipConnected());
 }

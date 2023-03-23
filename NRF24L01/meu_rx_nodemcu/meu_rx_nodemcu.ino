@@ -4,20 +4,21 @@
 #include <RF24.h>
 
 //create an RF24 object
-RF24 radio(0, 2);  // CE, CSN
-
+//RF24 radio(0, 2);  // CE, CSN nodemcu
+RF24 radio(9, 10); //arduino
 //address through which two modules communicate.
 const byte address[6] = "00001";
 int contador = 0;
 float leituras[4];
-void setup()
-{
+
+void setup(){
   Serial.begin(9600);
   delay(2000);
   radio.begin();
   //set the address
   radio.openReadingPipe(0, address);
-
+  radio.setDataRate(RF24_250KBPS);
+  radio.setPALevel(RF24_PA_MAX);
   //Set module as transmitter
    radio.startListening();
   Serial.println("Esperando Mensagem:");
