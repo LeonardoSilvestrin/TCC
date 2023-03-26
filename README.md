@@ -1,13 +1,9 @@
-Na pasta NRF24L01: 
-meu_rx_nodemcu -- código para o receptor esp8266, não está funcionando 
-meu_tx_nodemcu -- código para o transmissor arduino UNO, não está funcionando
+Códigos do TCC
 
-    Problema: a comunicação via NRF24L01 fica errada quando eu tento concatentar string com inteiro, não consegui arrumar o erro.
-    Tentei criar uma struct para corrigir mas o erro persistiu, ele tem dificuldades para separar o pacote do lado do receptor.
+A pasta NRF24L01 contém meus códigos antigos, nos quais eu ainda usava a IDE do Arduino.
 
-rx_pingpong -- código para o receptor esp8266
-tx_pingpong -- código para o transmissor arduino UNO
-
-    Nova implementação: dessa vez, vou tentar fazer uma comunicação ping pong, 
-    onde o transmissor envia uma string, espera resposta para em seguida mandar o inteiro separadamente.
-
+A pasta NRF24L01 contém os arquivos após minha iniciação na IDE platform.io.
+    Sendo as pastas:
+        tx_pio_test --> primeiro teste que fiz de transmissão usando o PIO
+        rx_pio_test --> primeiro teste que fiz de recepção usando o PIO
+        
