@@ -4,7 +4,7 @@
 #include <RF24.h>
 
 
-#ifdef ARDUINO_ARCH_ESP8266
+#ifdef ARDUINO_ARCH_ESP8266 // muda a configuração dos pinos dependendo da placa que estou usando
 // CE, CSN esp8266
 #define CE 0
 #define CSN 2
