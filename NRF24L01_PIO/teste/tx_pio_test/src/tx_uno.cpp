@@ -3,22 +3,27 @@
 #include <SPI.h>
 #include <RF24.h>
 
-
-#ifdef ARDUINO_ARCH_ESP8266 // muda a configuração dos pinos dependendo da placa que estou usando
-// CE, CSN esp8266
-#define CE 0
-#define CSN 2
-// CE, CSN arduino
-#else
+#if defined(ARDUINO_ARCH_ESP8266)
+  // configuração para ESP8266
+  #define CE 0
+  #define CSN 2
+#elif defined(ARDUINO_ARCH_AVR)
 #define CE 9
 #define CSN 10
-#endif 
-#define uC_serial 9600
+#if defined(ARDUINO_AVR_UNO)
+    // configuração para Arduino UNO
+    #define endereco 0xF0F0F0F0AA
+  #elif defined(ARDUINO_AVR_NANO)
+    // configuração para Arduino NANO
+    #define endereco 0xF0F0F0F066
+  #endif
+#endif
+#define uC_serial  9600
+
 
 //create an RF24 object
 RF24 radio(CE, CSN);
 
-const byte address[6] = "00001";
 int contador = 0;
 float leituras[4];
   
@@ -27,7 +32,7 @@ void setup(){
   delay(2000);
   radio.begin();
   //set the address
-  radio.openWritingPipe(address);
+  radio.openWritingPipe(endereco);
   //Set module as receiver
   radio.stopListening();
   radio.setDataRate(RF24_250KBPS);

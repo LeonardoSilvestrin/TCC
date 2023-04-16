@@ -37,11 +37,27 @@ void setup(){
   }
 }
 
-int receber_mensagem(){
+void printar_mensagem(int contador, float* leituras){
+  Serial.print("Número de mensagens recebidas: ");
+  Serial.println(contador);
+  Serial.println(" --------------------- Início da mensagem  ------------------------");
+  Serial.print("ID do Módulo Sensorial: ");
+  Serial.println(leituras[0]);
+  for (int i = 0; i<4; i++){
+      Serial.print("Leitura do Sensor ");
+      Serial.print(i+1);
+      Serial.println(":");
+      Serial.println(leituras[i]);
+    };
+  Serial.println(" ----------------- fim da transmissão -------------------------");
+}
+
+float receber_mensagem(int contador){
   if (radio.available()){
     byte buffer_mensagem[sizeof(leituras)];
     radio.read(&buffer_mensagem,sizeof(buffer_mensagem));
     memcpy(&leituras, buffer_mensagem, sizeof(buffer_mensagem));
+    printar_mensagem(contador, leituras);
     return 1;
   }
   else{
@@ -50,24 +66,8 @@ int receber_mensagem(){
   }
 }
 
-void printar_mensagem(int contador){
-  Serial.print("Número de mensagens recebidas: ");
-  Serial.println(contador);
-  Serial.println(" --------------------- Início da mensagem  ------------------------");
-  Serial.print("ID do Módulo Sensorial: ");
-  Serial.println(leituras[0]);
-  for (int i = 0; i<4; i++){
-      Serial.print("Leitura do Sensor: ");
-      Serial.print(i+1);
-      Serial.print(leituras[i]);
-    };
-  Serial.println(" ----------------- fim da transmissão -------------------------");
-}
-
 void loop(){
-  int msg = receber_mensagem();
-  if (msg){
-    printar_mensagem(contador);
-  }
-  delay(500);
+  receber_mensagem(contador);
+  receber_mensagem(contador);
+  delay(5000);
 }
