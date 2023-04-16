@@ -12,7 +12,7 @@
 #elif defined(ARDUINO_ARCH_AVR)
 #define CE 9
 #define CSN 10
-#if defined(ARDUINO_AVR_UNO)#define endereco 0xF0F0F0F0AA
+#if defined(ARDUINO_AVR_UNO)
     // configuração para Arduino UNO
     #define endereco 0xF0F0F0F0AA
   #elif defined(ARDUINO_AVR_NANO)
@@ -41,14 +41,21 @@ void setup(){
   Serial.println("Esperando Mensagem:");
   Serial.println(radio.isChipConnected());
 }
+
+void ler_dados(){
+    byte buffer_mensagem[sizeof(leituras)];
+    radio.read(&buffer_mensagem,sizeof(buffer_mensagem));
+    memcpy(&leituras, buffer_mensagem, sizeof(buffer_mensagem));
+}
 void loop(){
 //Read the data if available in buffer
   if (radio.available())
   {
     contador++;
-    byte buffer_mensagem[sizeof(leituras)];
-    radio.read(&buffer_mensagem,sizeof(buffer_mensagem));
-    memcpy(&leituras, buffer_mensagem, sizeof(buffer_mensagem));
+    // byte buffer_mensagem[sizeof(leituras)];
+    // radio.read(&buffer_mensagem,sizeof(buffer_mensagem));
+    // memcpy(&leituras, buffer_mensagem, sizeof(buffer_mensagem));
+    ler_dados();
     Serial.println(" ------------------------------------- Início da mensagem  -----------------------------------");
     Serial.print("início da mensagem recebida, id - ");
     Serial.println(contador);

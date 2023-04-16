@@ -61,13 +61,11 @@ float receber_mensagem(int contador){
     return 1;
   }
   else{
-    Serial.println("Falha de conexão com o sensor ");
     return 0;
   }
 }
 
 void loop(){
-  receber_mensagem(contador);
-  receber_mensagem(contador);
-  delay(5000);
+  contador += receber_mensagem(contador);
+  delay(10);
 }

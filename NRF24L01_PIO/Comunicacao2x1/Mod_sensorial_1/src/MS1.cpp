@@ -22,12 +22,13 @@
 #define uC_serial  9600
 
 
-//create an RF24 object/dev/ttyUSB0
+//create an RF24 object
 RF24 radio(CE, CSN);
 
-const uint64_t address = endereco;
+
 int contador = 0;
 float leituras[4];
+
 float sensorID(const uint64_t endereco_sensor){ 
   switch (endereco_sensor) {
     case 0xF0F0F0F0AA:
@@ -43,21 +44,20 @@ void setup(){
   Serial.begin(uC_serial);
   delay(2000);
   radio.begin();
-  radio.openWritingPipe(address);
+  radio.openWritingPipe(endereco);
   radio.stopListening();
   radio.setDataRate(RF24_250KBPS);
-  radio.setPALevel(RF24_PA_LOW);
+  radio.setPALevel(RF24_PA_MAX);
   Serial.print("Começando transmissão - ");
   Serial.println(radio.isChipConnected());
 }
 
-void enviar_mensagem(float* mensagem){
-  long int t0 = millis();
-  while (millis()-t0 < 5000){
-    byte buffer_mensagem[sizeof(mensagem)];
-    memcpy(buffer_mensagem, &mensagem, sizeof(mensagem));
-    radio.write(&buffer_mensagem, sizeof(buffer_mensagem));
-  }
+void enviar_mensagem(float* mensagem, int size){
+  float delay_time = sensorID(endereco)*3000;
+  delay(delay_time);
+  byte buffer_mensagem[size];
+  memcpy(buffer_mensagem, mensagem, size);
+  radio.write(&buffer_mensagem, sizeof(buffer_mensagem));
 }
 
 void loop()
@@ -67,7 +67,7 @@ void loop()
   leituras[1]= contador;
   leituras[2]= 0;
   leituras[3]= 0;
-  enviar_mensagem(leituras);
+  enviar_mensagem(leituras,sizeof(leituras));
   // -------------------------- printar mensagem enviada ---------------------------
   Serial.println(" ------------------------------------- Início da transmissão  -------------------------------");
   Serial.print("ID do sensor: ");
