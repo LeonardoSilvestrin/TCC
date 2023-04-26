@@ -3,22 +3,9 @@
 #include <SPI.h>
 #include <RF24.h>
 
-
-#if defined(ARDUINO_ARCH_ESP8266)
-  // configuração para ESP8266
-  #define CE 0
-  #define CSN 2
-#elif defined(ARDUINO_ARCH_AVR)
 #define CE 9
 #define CSN 10
-#if defined(ARDUINO_AVR_UNO)
-    // configuração para Arduino UNO
-    #define endereco 0xF0F0F0F0AA
-  #elif defined(ARDUINO_AVR_NANO)
-    // configuração para Arduino NANO
-    #define endereco 0xF0F0F0F066
-  #endif
-#endif
+#define endereco 0xF0F0F0F0AA
 #define uC_serial  9600
 
 
@@ -29,8 +16,8 @@ RF24 radio(CE, CSN);
 int contador = 0;
 float leituras[4];
 
-float sensorID(const uint64_t endereco_sensor){ 
-  switch (endereco_sensor) {
+float sensorID(const uint64_t endereco_main){ 
+  switch (endereco_main) {
     case 0xF0F0F0F0AA:
       return 1.0;
     case 0xF0F0F0F066:
@@ -60,17 +47,16 @@ void enviar_mensagem(float* mensagem, int size){
 
 void loop()
 {
+  int leitura_sensor_discreta = analogRead(A0);
+  float leitura_sensor = map(leitura_sensor_discreta, 0, 1023, 0, 100); 
   contador++;
   leituras[0]= sensorID(endereco);
   leituras[1]= contador;
-  leituras[2]= 0;
+  leituras[2]= leitura_sensor;
   leituras[3]= 0;
 
-  float cycle_time = 5000;
-  float delay_time = sensorID(endereco)*cycle_time-cycle_time/2;
-  delay(delay_time);
   enviar_mensagem(leituras,sizeof(leituras));
-  delay(abs(cycle_time-delay_time));
+  
   // -------------------------- printar mensagem enviada ---------------------------
   Serial.println(" ------------------------------------- Início da transmissão  -------------------------------");
   Serial.print("ID do sensor: ");
@@ -83,5 +69,6 @@ void loop()
    };
    Serial.println("");
    Serial.println(" ------------------------------------- fim da transmissão -----------------------------------");
-  // -------------------------- end printar mensagem enviada ---------------------------
+   delay(1000);
+  // -------------------------- 55555555555555555555555555555end printar mensagem enviada ---------------------------
 }

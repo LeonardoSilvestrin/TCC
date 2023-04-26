@@ -60,17 +60,16 @@ void enviar_mensagem(float* mensagem, int size){
 
 void loop()
 {
+  int leitura_sensor_discreta = analogRead(A0);
+  float leitura_sensor = map(leitura_sensor_discreta, 0, 1023, 0, 100); 
   contador++;
   leituras[0]= sensorID(endereco);
   leituras[1]= contador;
-  leituras[2]= 0;
+  leituras[2]= leitura_sensor;
   leituras[3]= 0;
 
-  float cycle_time = 5000;
-  float delay_time = sensorID(endereco)*cycle_time-cycle_time/2;
-  delay(delay_time);
   enviar_mensagem(leituras,sizeof(leituras));
-  delay(abs(cycle_time-delay_time));
+  
   // -------------------------- printar mensagem enviada ---------------------------
   Serial.println(" ------------------------------------- Início da transmissão  -------------------------------");
   Serial.print("ID do sensor: ");
@@ -83,5 +82,6 @@ void loop()
    };
    Serial.println("");
    Serial.println(" ------------------------------------- fim da transmissão -----------------------------------");
-  // -------------------------- end printar mensagem enviada ---------------------------
+   delay(5000);
+  // -------------------------- 55555555555555555555555555555end printar mensagem enviada ---------------------------
 }
