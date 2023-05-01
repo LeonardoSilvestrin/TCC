@@ -19,7 +19,7 @@
 RF24 radio(CE, CSN); 
 //address through which two modules communicate.
 
-const uint64_t endereco_central= 0xF0F0F0F066;
+const uint64_t endereco_central= 0xF0F0F0F0AA;
 int contador = 0;
 float leituras[4];
 
@@ -34,7 +34,7 @@ void setup(){
   if (radio.isChipConnected()){
     Serial.println("Chip conectado");
   }
-  pinMode(LED,OUTPUT);
+  pinMode(LED,OUTPUT);t
 }
 
 

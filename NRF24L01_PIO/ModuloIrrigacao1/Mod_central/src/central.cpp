@@ -91,9 +91,11 @@
 #define CE 0
 #define CSN 2
 // CE, CSN arduino
+
 #else
 #define CE 9
 #define CSN 10
+
 #endif 
 #define uC_serial 9600
 //create an RF24 object
