@@ -3,14 +3,13 @@
 #include <SPI.h>
 #include <RF24.h>
 
+
 #if defined(ARDUINO_ARCH_ESP8266)   // configuração para ESP8266
   #define CE 0
   #define CSN 2
-  #define tempo 1000
 #elif defined(ARDUINO_ARCH_AVR) // configuração para UNO
   #define CE 9
   #define CSN 10
-  #define tempo 2000
 #endif
 
 #define uC_serial  9600 // velocidade de comunicação do micro via porta serial
@@ -20,26 +19,16 @@ RF24 radio(CE, CSN); // criando um objeto radio da biblioteca RF24
 
 const uint64_t enderecos[]= {0xF0F0F0F0F000,0xF0F0F0F0F001,0xF0F0F0F0F002};
 
-float mensagem_enviar[] = {1.0,1.0};
-int tamanho_mensagem_out = sizeof(mensagem_enviar);
 float mensagem_recebida[2];
 int tamanho_mensagem_in = sizeof(mensagem_recebida);
 
-//struct pacote 
-//{
-//    int id;
-//    float dado;
-//    char mensagem;
-//};
-//
-//typedef struct pacote mensagem_enviar;
-
-
+float mensagem_enviar[] = {22.08,31.08};
+int tamanho_mensagem_out = sizeof(mensagem_enviar);
 
 void enviar_mensagem(float* mensagem)
 {
   radio.stopListening();
-  radio.openWritingPipe(enderecos[1]);
+  radio.openWritingPipe(enderecos[0]);
   byte buffer_mensagem[tamanho_mensagem_out];
   memcpy(buffer_mensagem, mensagem, tamanho_mensagem_out);
   radio.write(&buffer_mensagem, sizeof(buffer_mensagem));
@@ -49,7 +38,7 @@ void enviar_mensagem(float* mensagem)
 int receber_mensagem()
 {
   radio.startListening();
-  radio.openReadingPipe(0,enderecos[0]);
+  radio.openReadingPipe(1,enderecos[1]);
   if (radio.available())
   {
     byte buffer_mensagem[tamanho_mensagem_in];
@@ -114,28 +103,11 @@ void setup()
 
 void loop()
 {
-  int delta = 0;
-  int* ponteiro_delta = &delta;
   long int t0 = millis();
   int voltas = 0;
   while(millis() - t0 < 5000)
   {
     if (voltas > 0)
-    {
-      *ponteiro_delta = 100*receber_mensagem();
-    }
-    else
-    {
-      receber_e_printar();
-    }
-    voltas ++;
-    delay(1000);
-  }
-  long int t1 = millis();
-  int voltas_2 = 0;
-  while(millis() - t1 < 5000)
-  {
-    if (voltas_2 > 0)
     {
       enviar_mensagem(mensagem_enviar);
     }
@@ -143,9 +115,27 @@ void loop()
     {
       enviar_e_printar();
     }
-    voltas_2++;
-    delay(500);
+    voltas++;
+    delay(50);
   }
-  delay(1000+delta);
+  long int t1 = millis();
+  int voltas_2 = 0;
+  while(millis() - t1 < 5000)
+  {
+    if (voltas_2 > 0)
+    {
+      receber_mensagem();
+    }
+    else
+    {
+      receber_e_printar();
+    }
+    voltas_2++;
+    delay(100);
+  }
+  long int tf = millis();
+  Serial.print("dt = ");
+  Serial.println(tf-t0);
+  long int tempo = 15000-(tf-t0);
+  delay(tempo);
 }
-
