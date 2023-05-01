@@ -57,13 +57,13 @@ void enviar_e_printar()
 {
   enviar_mensagem(mensagem_enviar);
   int i;
-  *(mensagem_enviar+1)= *(mensagem_enviar+1) + 0.01;
   Serial.println("---------");
   Serial.println("Mensagem Enviada:");
   for (i = 0; i<2; i++)
   {
     Serial.println(mensagem_enviar[i]);
   }
+  *(mensagem_enviar+1)= *(mensagem_enviar+1) + 0.01;
 
 }
 
@@ -136,6 +136,6 @@ void loop()
   long int tf = millis();
   Serial.print("dt = ");
   Serial.println(tf-t0);
-  long int tempo = 15000-(tf-t0);
+  long int tempo = 12000-(tf-t0);
   delay(tempo);
 }
