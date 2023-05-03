@@ -45,13 +45,13 @@ void enviar_mensagem(float* mensagem)
 
 int receber_mensagem()
 {
-  radio.startListening();
   radio.openReadingPipe(0,enderecos[0]);
+  radio.startListening();
   if (radio.available())
   {
     byte buffer_mensagem[tamanho_mensagem_in];
     radio.read(&buffer_mensagem,sizeof(buffer_mensagem));
-    memcpy(&mensagem_recebida, buffer_mensagem, sizeof(buffer_mensagem));
+    memcpy(mensagem_recebida, buffer_mensagem, sizeof(buffer_mensagem));
     //radio.read(&mensagem_recebida, tamanho_mensagem_in);
     return 1;
   }
@@ -61,9 +61,8 @@ int receber_mensagem()
   }
 }
 
-void enviar_e_printar()
+void printar_enviada()
 {
-  enviar_mensagem(mensagem_enviar);
   int i;
   Serial.println("---------");
   Serial.println("Mensagem Enviada:");
@@ -71,15 +70,10 @@ void enviar_e_printar()
   {
     Serial.println(mensagem_enviar[i]);
   }
-  *(mensagem_enviar+1)= *(mensagem_enviar+1) + 0.01;
-
 }
 
-void receber_e_printar()
+void printar_recebida()
 {
-  receber_mensagem();
-  if(receber_mensagem())
-  {
     Serial.println("---------");
     Serial.println("Mensagem Recebida:");
     int i;
@@ -87,64 +81,38 @@ void receber_e_printar()
     {;
       Serial.println(mensagem_recebida[i]);
     }
-  }
-  else
-  {
-    Serial.println("Falha de Conexão");
-  }
 }
 
 void setup()
 {
   Serial.begin(uC_serial);
   radio.begin();
-  radio.enableAckPayload();
-  radio.enableDynamicPayloads();
   radio.setDataRate(RF24_250KBPS);
-  radio.setPALevel(RF24_PA_MIN);
+  radio.setPALevel(RF24_PA_MAX);
+  radio.setChannel(100);
   if(radio.isChipConnected())
   {
     Serial.println("Chip Conectado");
   }
+  pinMode(3,OUTPUT);
 }
 
-
+int voltas = 0;
 void loop()
 {
-  long int t0 = millis();
-  int voltas = 0;
-  while(millis() - t0 < 5000)
+  receber_mensagem();
+  delay(10);
+  enviar_mensagem(mensagem_enviar);
+  if(voltas%100== 0)
   {
-    if (voltas > 0)
-    {
-      receber_mensagem();
-    }
-    else
-    {
-      receber_e_printar();
-    }
-    voltas ++;
-    delay(100);
+    *(mensagem_enviar+1)= *(mensagem_enviar+1) + 0.01;
+  printar_enviada();
+    printar_recebida();
+
+  mensagem_recebida[0] = -1.0;
+  mensagem_recebida[1] = -1.0;
   }
-  long int t1 = millis();
-  int voltas_2 = 0;
-  while(millis() - t1 < 5000)
-  {
-    if (voltas_2 > 0)
-    {
-      enviar_mensagem(mensagem_enviar);
-    }
-    else
-    {
-      enviar_e_printar();
-    }
-    voltas_2++;
-    delay(50);
-  }
-  long int tf = millis();
-  Serial.print("dt = ");
-  Serial.println(tf-t0);
-  long int tempo = 12000-(tf-t0);
-  delay(tempo);
+  delay(10);
+  voltas++;
 }
 
