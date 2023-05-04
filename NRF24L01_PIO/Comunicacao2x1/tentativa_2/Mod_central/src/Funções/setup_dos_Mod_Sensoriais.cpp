@@ -1,6 +1,6 @@
 #include <master.h>
 
-sensor_data sensores[2];
+sensor_data sensores[num_sensores];
 
 void setup_sensores()
 {
