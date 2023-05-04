@@ -34,7 +34,7 @@ void setup(){
   if (radio.isChipConnected()){
     Serial.println("Chip conectado");
   }
-  pinMode(LED,OUTPUT);t
+  pinMode(LED,OUTPUT);
 }
 
 

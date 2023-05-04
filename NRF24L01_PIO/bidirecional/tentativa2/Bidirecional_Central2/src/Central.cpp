@@ -89,7 +89,7 @@ void setup()
   radio.begin();
   radio.setDataRate(RF24_250KBPS);
   radio.setPALevel(RF24_PA_MAX);
-  radio.setChannel(100);
+  //radio.setChannel(100);
   if(radio.isChipConnected())
   {
     Serial.println("Chip Conectado");
@@ -106,7 +106,7 @@ void loop()
   if(voltas%100== 0)
   {
     *(mensagem_enviar+1)= *(mensagem_enviar+1) + 0.01;
-  printar_enviada();
+    printar_enviada();
     printar_recebida();
 
   mensagem_recebida[0] = -1.0;
