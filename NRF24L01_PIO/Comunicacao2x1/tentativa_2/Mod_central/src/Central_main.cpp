@@ -14,8 +14,6 @@ void setup()
   setup_sensores();
 }
 
-
-
 void loop()
 {
   for(int i = 0; i< num_sensores;i++)
