@@ -80,7 +80,8 @@ void setup()
   Serial.begin(uC_serial);
   radio.begin();
   radio.setDataRate(RF24_250KBPS);
-  radio.setPALevel(RF24_PA_MAX);
+  radio.setPALevel(RF24_PA_MIN);
+  radio.setChannel(125);
  // radio.setChannel(100);
   if(radio.isChipConnected())
   {

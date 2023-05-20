@@ -1,5 +1,4 @@
 #include <master.h>
-
 // ==================================================FUNÇÕES GLOBAIS===========================================================
 // --------------------------------------------funções de receber e enviar mensagens---------------------------------------
 void enviar_mensagem(float* mensagem, uint64_t endereco)
