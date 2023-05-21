@@ -347,10 +347,12 @@ bool handle_c_message(RF24NetworkHeader header) // recebe solicitação de id e 
 // retorna 1 caso o sensor receba o novo id e 0 caso não receba
 {
   int message[2];
-  byte buffer_message[sizeof(message)];
-
-  network.read(header, &buffer_message, sizeof(buffer_message));
-  memcpy(message, &buffer_message, sizeof(buffer_message));
+  // byte buffer_message[sizeof(message)];
+  // Serial.print("sizeof(buffer_message) - ");
+  // Serial.println(sizeof(buffer_message));
+  
+  network.read(header, message, sizeof(message));
+  //memcpy(message, &buffer_message, sizeof(buffer_message));
   
   int id_solicitando_configuracao=message[0];
   int random_num = message[1];

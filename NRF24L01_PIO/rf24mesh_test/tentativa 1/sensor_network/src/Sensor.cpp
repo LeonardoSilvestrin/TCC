@@ -154,10 +154,12 @@ int get_new_id() // solicitação para a central, header = c; conteúdo = 1 (sol
   byte buffer[sizeof(message)];  // Buffer with payload size of 12 bytes
   memcpy(buffer, &message, sizeof(message)); 
   
-  mesh.write(&buffer,'c',sizeof(buffer));
+  mesh.write(buffer,'c',sizeof(buffer));
   
   Serial.print("myID: ");
-  Serial.println(myID);
+  Serial.print(myID);
+  Serial.print(":");
+  Serial.println(mesh.getNodeID());
   unsigned long t0 = millis();
   while(millis()-t0<5000)
   {
