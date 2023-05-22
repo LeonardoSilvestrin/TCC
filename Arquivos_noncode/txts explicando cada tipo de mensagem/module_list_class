@@ -1,0 +1,153 @@
+
+/*
+class Module_data
+{
+  private:
+    int network_id;
+    char module_type;
+    float last_sent_data[3]={0,0,0};
+    bool sent_data_this_cycle = false;
+    int num_of_inactive_cycles = 0;
+  public:
+    Module_data(int network_id, char module_type)
+    {
+      this->network_id = network_id;
+      this->module_type = module_type;
+    }
+    ~Module_data()
+    {
+
+    }
+    void didnt_sent_data()
+    {
+      this->num_of_inactive_cycles++;
+    }
+    void set_id(int id)
+    {
+      this->network_id = id;
+    }
+    int get_id()
+    {
+      return network_id;
+    }
+    void set_last_sent_data(float data[3])
+    {
+      for(int i=0;i<4;i++)
+      {
+        this->last_sent_data[i] = data[i];
+      }
+    }
+    float* get_last_sent_data()
+    {
+      return last_sent_data;
+    }
+
+};
+
+class ModuleList 
+{
+  private:
+    Module_data** _modules_list;
+    int _num_of_modules;
+
+  public:
+    ModuleList(Network_configuration rede)
+    {
+      this->_num_of_modules = rede.get_num_of_modules(); 
+      Module_data** modules_list = new Module_data*[_num_of_modules];
+      bool* ids_in_use = rede.get_ids();
+      int module_index = 0;
+      for(int j=0;j<255;j++)
+      {
+        if(ids_in_use[j] == true)
+        {
+          int module_id = j;
+          char module_type = rede.get_type(j);
+          modules_list[module_index] = new Module_data(module_id,module_type); 
+          module_index++;
+        }
+      }
+      this->_modules_list = modules_list;
+    }
+    ~ModuleList() 
+    {
+      destroy_modules();
+    }
+ 
+
+    void add_module(int new_module_id, char new_module_type) 
+    {
+      // Allocate a new temporary array with increased size
+      Module_data** temp_list = new Module_data*[_num_of_modules + 1];
+
+      // Copy the existing elements to the temporary array
+      for (int i = 0; i < _num_of_modules; i++) 
+      {
+        temp_list[i] = _modules_list[i];
+      }
+
+      // Create a new Module_data object for the new module
+      Module_data* new_module = new Module_data(new_module_id, new_module_type);
+
+      // Add the new module to the temporary array
+      temp_list[_num_of_modules] = new_module;
+
+      // Deallocate the memory for the original modules_list
+      delete[] _modules_list;
+
+      // Update modules_list and num_of_modules
+      this->_modules_list = temp_list;
+      this->_num_of_modules++;
+    }
+
+    void remove_module(int id) 
+    {
+      // Find the index of the module with the specified ID
+      int index = -1;
+      for (int i = 0; i < _num_of_modules; i++) 
+      {
+        if (_modules_list[i]->get_id() == id) 
+        {
+          index = i;
+          break;
+        }
+      }
+
+      // If module found, remove it
+      if (index != -1) 
+      {
+        // Delete the Module_data object
+        delete _modules_list[index];
+
+        // Shift the remaining elements to fill the gap
+        for (int i = index; i < _num_of_modules - 1; i++) 
+        {
+          _modules_list[i] = _modules_list[i + 1];
+        }
+
+        // Deallocate the memory for the last element
+        delete _modules_list[_num_of_modules - 1];
+
+        // Update the num_of_modules variable
+      }
+      this->_num_of_modules--;
+    }
+
+    void destroy_modules() 
+    {
+      if (_modules_list) 
+      {
+        for (int i = 0; i < _num_of_modules; i++) 
+        {
+          delete _modules_list[i];
+        }
+
+        delete[] _modules_list;
+        this->_modules_list = nullptr;
+        this->_num_of_modules = 0;
+      }
+    }
+};
+
+ModuleList module_list(minha_rede);
+*/
