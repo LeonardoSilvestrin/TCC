@@ -32,14 +32,12 @@ RF24Mesh mesh(radio,network);
 
 int CentralID = 0;
 int myID = baseID;
-int myOldID;
+int myOldID = baseID;
 char myType = 's';
-int message_counter;
 
 DHT mydht;
-float umidade_do_ar = 0x00, temperatura = 0x00;
 
-int id_update() // solicitação para a central, header = c; conteúdo =  array de 8 bytes contendo o unique id do hardware;
+int id_update()
 {
   uint8_t message[9];
   for(int i = 0; i<8;i++)
@@ -61,6 +59,7 @@ int id_update() // solicitação para a central, header = c; conteúdo =  array 
       network.read(header, &id, sizeof(id));
       Serial.print(F("ID recebido da central: "));
       Serial.println(id);
+      mesh.releaseAddress();
       return id;
       delay(1);
     }
@@ -68,6 +67,30 @@ int id_update() // solicitação para a central, header = c; conteúdo =  array 
   Serial.print("Falha, resetando ID para base: ");
   Serial.println(baseID);
   return baseID;
+}
+
+bool send_data(float bateria, float temperatura, float umidade_do_solo)
+{
+  float message[3];
+  message[0] = bateria;
+  message[1] = temperatura;
+  message[2] = umidade_do_solo;
+  
+  unsigned long t0 = millis();
+  while(millis()-t0<1000)
+  {
+    if(mesh.write(&message,'d',sizeof(message)))
+    {
+      Serial.println("Dados enviados:");
+      Serial.println(*message);
+      Serial.println(*(message+1));
+      Serial.println(*(message+2));
+      return 1;
+    }
+    delay(1);
+  }
+  Serial.println("Timeout. Sem resposta da central");
+  return 0;
 }
 
 
@@ -109,36 +132,40 @@ int EEPROM_get_id()
 {
   byte id;
   EEPROM.get(0,id); //lê o byte da posição 0 da eeprom e retorna como inteiro;
+  if ((int)id == 0 || (int)id == baseID)
+  {
+    id = (byte)baseID;
+  }
   return (int)id;
 }
 
 void setup() 
 {
-  Serial.begin(uC_serial); //inicia a comunicação serial
+  //---------------------------------------------------------------
+  // Inicia a comunicação serial
+  Serial.begin(uC_serial); 
   Serial.println("########################################################################");
   
-  mydht.setup(dht_pin); //setup do sensor de umidade do ar e temperatura dht11
+  //---------------------------------------------------------------
+  // Inicia o sensor de umidade do ar e temperatura dht11
+  mydht.setup(dht_pin); 
   
-  // setup do radio
+  //---------------------------------------------------------------
+  // Setup do radio
   radio.begin();
   radio.setPALevel(RF24_PA_MIN); //potencia mínima, desativa a amplificação de ruído
-  radio.setRetries(5, 5); // seta o padrão de 5 retries no envio de mensagem com 5ms de intervalo entre elas
-  radio.setChannel(125); //seta o canal 125 para operação
+  radio.setRetries(5, 5); // seta o padrão de 5 retries no envio de mensagem com 1500us (5*250 + 250) de intervalo entre elas
+  radio.setChannel(125); //seta o canal 125 para operação => 2,525 GHz (2,4 + 0,125) 
   
-  // solicitando ID antigo da EEPROM
+  //---------------------------------------------------------------
+  // Inicia a EEPROM e lẽ o último ID registrado
   EEPROM.begin();
   myOldID = EEPROM_get_id();
-  if (myOldID == 0 || myOldID == baseID)
-  {
-    myID = baseID;
-  }
-  else
-  {
-    myID = myOldID;
-  }
+  //---------------------------------------------------------------
+  // Printa o último ID de rede do módulo bem como o número de série
+
   Serial.print("Meu último ID: ");
   Serial.println(myID);
-
   Serial.print("UniqueID: ");
 	for (size_t i = 0; i < UniqueIDsize; i++)
 	{
@@ -148,12 +175,10 @@ void setup()
 		  Serial.print(" ");
 	}
 	Serial.println();
-  connect_to_mesh(myID); // conecta na malha com o ID antigo ou o ID 255 para novos sensores
-}
-
-void loop() 
-{ 
+  //---------------------------------------------------------------
+  // conecta na malha com o ID antigo (ID 255 para novos sensores)
   
+  connect_to_mesh(myID);  
   mesh.update();
   myID = id_update();
   while(myID==baseID)
@@ -163,30 +188,55 @@ void loop()
     connect_to_mesh(myID);
     delay(1);
   }
-  if (myID == 0) // se a central responder a solicitação de id com 0 o sensor fica em loop infinito.
+  // se a central responder a solicitação de id com 0 o sensor fica em loop infinito.
+  if (myID == 0) 
   {
     myID = baseID;
-    message_counter = 0;
     Serial.print("Desconectado da rede.");
     while (1){}      
   }
-  Serial.println("Ta chegando");
-
+  //---------------------------------------------------------------
   EEPROM_save_id(myID);
+}
 
-  // aqui em baixo temos a função ler sensores e printar:
-  // ==============================================================
-  // umidade_do_ar = mydht.getHumidity();
-  // temperatura = mydht.getTemperature();
-  // int umidade_do_solo_in = analogRead(A0);
-  // float umidade_do_solo = map(umidade_do_solo_in,0,1024,0,100);
-  // Serial.println("------------------");
-  // Serial.print("Umidade do ar: ");
-  // Serial.println(umidade_do_ar);
-  // Serial.print("Umidade do solo: ");
-  // Serial.println(umidade_do_solo);
-  // Serial.print("temperatura: ");
-  // Serial.println(temperatura);
-  // ==============================================================
-  delay(100);
+float cc = 0;
+void loop() 
+{ 
+  myID = mesh._nodeID;
+  if(myID != baseID)
+  {
+    unsigned long t_inicial_coleta_dados = millis();
+    unsigned long t_max_para_enviar_dados = 5000;
+    while(millis()-t_inicial_coleta_dados<t_max_para_enviar_dados)
+    {
+      float bateria = 19;
+      float temperatura = 2.5+cc;
+      float umidade_do_solo = 70;
+      
+      //temperatura = mydht.getTemperature();
+      //int umidade_do_solo_in = analogRead(A0);
+      //float umidade_do_solo = map(umidade_do_solo_in,0,1024,0,100);
+
+      if(send_data(bateria, temperatura, umidade_do_solo))
+      {
+        break;
+      }
+    }
+    unsigned long t_final_coleta_dados = millis();
+    Serial.print("Fim do ciclo, tempo:");
+    Serial.println(t_final_coleta_dados);
+    cc+=.1;
+    Serial.print("Meu ID de rede:");
+    Serial.println(mesh.getNodeID());
+    delay(10000);
+  }
+  else
+  {
+    Serial.print("Erro, meu ID: ");
+    Serial.println(mesh.getNodeID());
+    Serial.println("Solicitando novo id para a central...");
+    myID = id_update();
+    connect_to_mesh(myID);
+    delay(1);
+  }
 }

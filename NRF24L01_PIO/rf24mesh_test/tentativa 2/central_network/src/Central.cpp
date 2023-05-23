@@ -26,37 +26,38 @@ int new_sensor_id =           baseID;
 int denial_id =               0;
 
 // ------------------------------------esses dois comandos devem vir do servidor --------------------------
-  bool entrada_novo_modulo =  true;
-  bool saida_modulo =         false;
-//---------------------------------------------------------------------------------------------------------
+bool entrada_novo_modulo =  true;
+bool saida_modulo =         false;
+int modulo_inativo =        0;
+//-----------------------------------------Network_configuration minha_rede;----------------------------------------------------------------
 
-class network_configuration
+class Network_configuration
 {
   private:
-    int num_of_nodes = 1;
-    bool addresses_in_use[256];
+    int num_of_modules = 1;
+    bool ids_in_use[256];
     uint8_t unique_hardware_id_list[256*8-2*8]; // -2x9 por que não precisa salvar o ID único da central nem do endereço de entrada 255
-    bool module_types[256];
+    bool module_types[254];
 
   public:
 
     //construtor da classe
-    network_configuration()
+    Network_configuration()
     {
-      this->addresses_in_use[0]=true;
-      this->addresses_in_use[255]=true;
+      this->ids_in_use[0]=true;
+      this->ids_in_use[255]=true;
       for(int i = 1;i<255;i++)
       {
-        this-> addresses_in_use[i] = false;
+        this-> ids_in_use[i] = false;
       }
     }
     
-    void recover_network_config(int num_of_nodes, bool* addresses_in_use, uint32_t* unique_hardware_id_list, bool* module_types)
+    void recover_network_config(int num_of_modules, bool* ids_in_use, uint32_t* unique_hardware_id_list, bool* module_types)
     {  
-      this->num_of_nodes = num_of_nodes;
+      this->num_of_modules = num_of_modules;
       for (int i = 0; i < 256; i++) 
       {
-        this->addresses_in_use[i] = addresses_in_use[i];
+        this->ids_in_use[i] = ids_in_use[i];
         this->module_types[i] = module_types[i];
         for(int j=0;j<8;j++)
         {
@@ -68,7 +69,7 @@ class network_configuration
     // adiciona entidade na rede
     void add_entity(int id, char sensor_type, uint8_t* unique_hardware_id)
     {
-      if (num_of_nodes == 254)
+      if (num_of_modules == 254)
       {
         Serial.println("Erro: Número máximo de módulos atingido.");
         while (1){}
@@ -82,15 +83,15 @@ class network_configuration
       }
       if (sensor_type == 's')
       {
-        this->module_types[id] = 0;
+        this->module_types[id] = false;
       }
       if (sensor_type == 'i')
       {
 
-        this->module_types[id] = 1;
+        this->module_types[id] = true;
       }
-      this->num_of_nodes++;
-      this->addresses_in_use[id]=true;
+      this->num_of_modules++;
+      this->ids_in_use[id]=true;
       Serial.print("unique hardware id computado: ");
       for(int i=0;i<8;i++)
       {
@@ -104,13 +105,13 @@ class network_configuration
     // remove entidade da rede
     void remove_entity(int id)
     {
-      if (num_of_nodes == 1)
+      if (num_of_modules == 1)
       {
        Serial.println("Erro: não há módulos para remover");
        while(1){} 
       }
-      this->num_of_nodes--;
-      this->addresses_in_use[id]=false;
+      this->num_of_modules--;
+      this->ids_in_use[id]=false;
       for(int i=0;i<8;i++)
       {
         this->unique_hardware_id_list[id+i] = (uint8_t)0;
@@ -118,19 +119,28 @@ class network_configuration
     }
     
     //ponteiro para o vetor que guarda o stattus da rede
-    bool* addresses()
+    bool* get_ids()
 
     {
-      return addresses_in_use;
+      return ids_in_use;
     }
     
+    int get_type(int id)
+    {
+      return module_types[id];
+    }
+    int get_num_of_modules()
+    {
+      return num_of_modules;
+    }
+
     // printa os endereços disponíveis e utilizados da rede (lista de booleanos)
     void print_mesh_stattus()
     {
       Serial.println("==========================MESH STATTUS============================");
       for(int i = 0;i<=255;i++)
       {
-        Serial.print(addresses_in_use[i]);
+        Serial.print(ids_in_use[i]);
       }
       Serial.println("\n=================================================================");
     }
@@ -140,7 +150,7 @@ class network_configuration
     {
       for(int i=1;i<255;i++)
       {
-        if(!addresses_in_use[i])
+        if(!ids_in_use[i])
         {
           return i;
         }
@@ -167,17 +177,84 @@ class network_configuration
       return &unique_hardware_id_list[8*(id-1)];
     }
 
-    int get_type(int id)
-    {
-      return module_types[id];
-    }
+};
+Network_configuration minha_rede;
 
+class Cycle_status
+{
+  private:
+    bool sensor_sent_data[254];
+    float data_sent[254*3];
+  public:
+    Cycle_status()
+    {
+      for(int i =0;i<254;i++)
+      {
+        this->sensor_sent_data[i]   = 0;
+        this->data_sent[3*i]        = 0;
+        this->data_sent[3*(i+1)]    = 0;
+        this->data_sent[3*(i+2)]    = 0;
+      }
+    }
+    void data_received(int id, float bateria, float temperatura, float umidade)
+    {
+      Serial.print("ID DATA RECEIVED:");
+      Serial.println(id);
+      this->sensor_sent_data[id-1]  = true;
+      this->data_sent[3*(id-1)]     = bateria;
+      this->data_sent[3*(id-1)+1]   = temperatura;
+      this->data_sent[3*(id-1)+2]   = umidade;
+    }
+    void new_cycle()
+    {
+      for(int i =0;i<254;i++)
+      {
+        this->sensor_sent_data[i] = 0;
+        this->data_sent[3*i]      = 0;
+        this->data_sent[3*i+1]  = 0;
+        this->data_sent[3*i+2]  = 0;
+      }
+    }
+    void print_cycle_status()
+    {
+      bool somedata = 0;
+      for(int i = 0; i<254;i++)
+      {
+        if (sensor_sent_data[i] == true)
+        {
+          float bateria             = data_sent[3*i];
+          float temperatura         = data_sent[3*i+1];
+          float umidade             = data_sent[3*i+2];
+          
+          Serial.print("Sensor de ID: ");
+          Serial.print(i+1);
+          Serial.println(" enviou dados nesse ciclo.");
+          Serial.print("Dados recebidos: ");
+          Serial.print("Bateria: ");
+          Serial.println(bateria);
+          Serial.print("Temperatura: ");
+          Serial.println(temperatura);
+          Serial.print("Umidade: ");
+          Serial.println(umidade);
+          somedata = 1;
+        }
+      }
+      if(!somedata)
+      {
+        Serial.println("Nenhum sensor enviou dados nesse ciclo :C");
+      }
+    }
+    float* get_data()
+    {
+      return this->data_sent;
+    }
 };
 
 
-network_configuration minha_rede;
+Cycle_status ciclo_atual;
 
 // ==========================================Funções de interpretação e tratamento de mensagens============================================
+
 
 bool is_id_valid(int id)
 {
@@ -210,20 +287,21 @@ bool compare_hardware_id_to_record(int sensor_network_id, uint8_t* id_2)
   {
     if(!(registered_uinique_address[i] == id_2[i]))
     {
-      return 0;
+      return false;
     }
   }
-  return 1;
+  return true;
 }
 // ========================================================= CONFIG ('c') MESSAGE ================================================================
+// responde solicitação do tipo 'c' com o novo endereço do módulo (id), retorna 1 se receber o ACK e 0 se não receber.
 bool answer_id_request_and_listen_to_ACK(int id, int message_to)
 {
   if(mesh.write(&id,'c',sizeof(id),message_to))
   {
     //================== print ========================
-    if(id != 255)
+    if(!saida_modulo)
     {
-      Serial.print("Módulo ");
+      Serial.print("Módulo");
       Serial.print(" inserido na rede, ID: ");
       Serial.println(id);
       return 1;
@@ -231,21 +309,14 @@ bool answer_id_request_and_listen_to_ACK(int id, int message_to)
     else
     {
       Serial.print("Módulo ");
-      Serial.println(" degenerado solicitando reinserção na rede, resetando ID para 255... ");
-      return 1;
-    }
-    if(saida_modulo)
-    {
-      Serial.print("Módulo ");
       Serial.print(" retirado na rede, ID: ");
       Serial.println(id);
       return 1;
     }
-    return 1;
   }
   else // se o write nao teve sucesso a central não deve computar mudanças na rede
   {
-    Serial.print("Sem resposta do Módulo solicitante");
+    Serial.println("Sem resposta do Módulo solicitante");
     minha_rede.print_mesh_stattus();
     return 0;
   }
@@ -259,11 +330,16 @@ bool answer_id_request_and_listen_to_ACK(int id, int message_to)
 bool process_c_message(RF24NetworkHeader header)
 {
   // --------------------------------------------------------recebimento da mensagem de configuração --------------------------------------------------
+  // uniqueID_and_type guarda nas primeiras 8 posições o endereço único do hardware, o último byte é o tipo de sensor (uint8_t)'i' ou (uint8_t)'s'
   uint8_t uniqueID_and_type[9];
+
   network.read(header, uniqueID_and_type, sizeof(uniqueID_and_type));
+  
   int requester_network_id =    (int)mesh.getNodeID(header.from_node);
   uint8_t* requester_hardware_id = uniqueID_and_type;
   char sensor_type = (char)requester_hardware_id[8];
+  
+  //--------------------------prints-------------------------
   Serial.println("Solicitação de configuração recebida.");
   Serial.print("ID Hardware: ");
   for(int i =0 ; i<8;i++)
@@ -276,30 +352,33 @@ bool process_c_message(RF24NetworkHeader header)
   Serial.println(requester_network_id);
   Serial.print("Sensor sensor_type: ");
   Serial.println((char)requester_hardware_id[8]);
-  
   minha_rede.print_mesh_stattus();
+  //---------------------------------------------------------------
   // *********************************************************************************************************************************************************************
   
-  // O tipo de resposta dado pela central vai depender das flags de entrada e saída de módulo que são recebidas do servidor, cada caso está implementado a seguir seguindo
-  // o modelo do protocolo de entrada da rede.
+  // O tipo de resposta dado pela central vai depender das flags de entrada e saída de módulo que são recebidas do servidor, 
+  //cada caso está implementado a seguir seguindo o modelo do protocolo de entrada da rede.
 
   // *********************************************************************************************************************************************************************
-  /*
+  
   // =================================================< PRIMEIRO CASO: há solicitação de << entrada e saída >> simultâneas >============================================= 
   if (entrada_novo_modulo && saida_modulo)
   {
     Serial.println("========ATENÇÃO========\n comandos de entrada e saída ativados simultâneamente!\n por favor realize uma operação de cada vez. ");
     return 0;
   }
-  */
   // =================================================< SEGUNDO CASO: Há solicitação de << entrada >> de módulo >========================================================
   if(entrada_novo_modulo)
   {
     // se o id for 255 e o contador 0, temos um novo sensor entrando na rede
     if(requester_network_id == 255) 
     {
-      int new_sensor_id = minha_rede.generate_new_ID();
       Serial.println("Novo sensor solicitando entrada na rede, gerando ID.");
+      
+      new_sensor_id = minha_rede.generate_new_ID();
+      //delay(1);
+      Serial.print(">>");
+      Serial.println(new_sensor_id);
       if(answer_id_request_and_listen_to_ACK(new_sensor_id,requester_network_id))
       {
         minha_rede.add_entity(new_sensor_id,sensor_type,requester_hardware_id);
@@ -307,16 +386,11 @@ bool process_c_message(RF24NetworkHeader header)
         return 1;
       }
     }
-
-    Serial.print("Posicao inicial do endereço na memoria: ");
-    Serial.println((int)minha_rede.get_module_recorded_unique_id(requester_network_id));
-    Serial.print("Conteudo da posicao: ");
-    Serial.println(*minha_rede.get_module_recorded_unique_id(requester_network_id),HEX);
     
     // se o id não for 255 e estiver registrado na rede, temos duas possibilidades:
     if(requester_network_id != 255 && minha_rede.is_id_in_the_mesh(requester_network_id))
     {
-      // PRIMEIRA POSSIBILIDADE: contador recebido pela mensagem igual ao registrado na rede
+      // PRIMEIRA POSSIBILIDADE: hardware ID recebido pela mensagem igual ao registrado na rede
       // -> Significa que um dos módulos foi reiniciado de maneira inesperada e está solicitando reentrada.
       // -> A flag de entrada_novo_modulo continua ativa (1). (talvez seja bom implementar algum aviso de possível erro nesta etapa)
       if (compare_hardware_id_to_record(requester_network_id,requester_hardware_id)) 
@@ -324,24 +398,32 @@ bool process_c_message(RF24NetworkHeader header)
         Serial.print("Atenção, o módulo de ID: ");
         Serial.print(requester_network_id);
         Serial.println(" foi reiniciado de maneira inesperada.\n Tentando reconexão...");
+        
         answer_id_request_and_listen_to_ACK(requester_network_id,requester_network_id);
         return 1;
       }
-      // SEGUNDA POSSIBILIDADE: o contador recebido não bate com o registrado
+      // SEGUNDA POSSIBILIDADE: o hardware ID recebido não bate com o registrado
       // -> Significa que temos um módulo que foi reiniciado de forma incorreta tentando voltar à rede.
       // -> Para garantir que não haja erros de endereçamento, a central vai resetar o ID do sensor, e este irá pedir para reentrar na rede pelo endereço 255.
       // -> A flag de entrada_novo_modulo continua ativa (1).
       else
       {
-        new_sensor_id = baseID;
         Serial.println("Sensor degenerado solicitando entrada na rede, por favor certifique-se de utilizar o protocolo de retirada corretamente quando for retirar um sensor");
         Serial.println("Resetando ID...");
+        
+        new_sensor_id = baseID;
         answer_id_request_and_listen_to_ACK(new_sensor_id,requester_network_id);
         return 1;
       }
     }
-    else
+    // por fim, temos o caso onde o ID não é 255 e não está registrado na rede, nesse caso temos um módulo degenerado solicitando entrada mas ele pode manter
+    // o mesmo ID
+    if(requester_network_id != 255 && !minha_rede.is_id_in_the_mesh(requester_network_id))
     {
+      Serial.println("Sensor degenerado solicitando entrada na rede, por favor certifique-se de utilizar o protocolo de retirada corretamente quando for retirar um sensor");
+      Serial.print("Entrada permitida, ID: ");
+      Serial.println(requester_network_id);
+
       new_sensor_id = requester_network_id;
       if(answer_id_request_and_listen_to_ACK(new_sensor_id,requester_network_id))
       {
@@ -368,25 +450,27 @@ bool process_c_message(RF24NetworkHeader header)
       }
      }
   }
-  
+  */
   // =================================================< QUARTO CASO: Não há solicitações vindas do servidor >========================================================
   if(!(entrada_novo_modulo || saida_modulo))
     {
       if(requester_network_id != 255)
       {
       // se o contador recebido na mensagem de solicitação bater significa que temos uma reinicialização inesperada de módulo
-      if (message_counter == minha_rede.get_hardware_unique_id(requester_network_id))
+      if (compare_hardware_id_to_record(requester_network_id,requester_hardware_id))
       {
+        new_sensor_id = requester_network_id;
         Serial.print("Atenção, o módulo de ID: ");
         Serial.print(requester_network_id);
         Serial.println("Foi reiniciado de maneira inesperada.\n Tentando reconexão...");
-        answer_id_request_and_listen_to_ACK(sensor_type,requester_network_id);
+        answer_id_request_and_listen_to_ACK(new_sensor_id,requester_network_id);
         return 1;
       }
       else
       {
+        new_sensor_id = baseID;
         Serial.println("Erro: Sensor degenerado solicitando entrada na rede, entrada negada.\nResetando EEPROM do módulo");
-        answer_id_request_and_listen_to_ACK(sensor_type,new_sensor_id); 
+        answer_id_request_and_listen_to_ACK(new_sensor_id,requester_network_id);
         return 0;
       }
       }
@@ -394,16 +478,40 @@ bool process_c_message(RF24NetworkHeader header)
     // de entrada de um novo módulo e 255 caso haja.
       else
       { 
+        new_sensor_id = denial_id;
         Serial.println("Solicitação de entrada recebida sem aprovação do servidor.\n Desativando módulo solicitante.");
-        answer_id_request_and_listen_to_ACK(sensor_type,denial_id);
+        answer_id_request_and_listen_to_ACK(new_sensor_id,requester_network_id);
         return 1;
       }
     } 
-  */
   Serial.println("NÃO DEVIA TER CHEGADO AQUI");
   return 0;
 }
 
+bool process_d_message(RF24NetworkHeader header)
+{
+  int id_sensor = mesh.getNodeID(header.from_node);
+  float data_to_receive[3];
+  if(id_sensor >0 && id_sensor < 255)
+  {
+    if (network.available()) 
+    {
+      network.read(header, data_to_receive, sizeof(data_to_receive));
+      float* data = data_to_receive;
+      ciclo_atual.data_received(id_sensor,data[0],data[1],data[2]);
+      return 1;
+    }
+  }
+  else
+  {
+    network.read(header,0,0);
+    {
+      Serial.print("Mensagem de dados vinda de header inválido, ID: ");
+      Serial.println(id_sensor);
+    }
+  }
+  return 0;
+}
 
 // ===============================================================================================================================================
 bool listen_to_network()
@@ -414,11 +522,17 @@ bool listen_to_network()
     network.peek(header); //ler o header da próxima mensagem da fila
     if(is_id_valid(mesh.getNodeID(header.from_node)))
     {
+      Serial.print((char)header.type);
       switch (header.type) 
       {
         // Display the incoming millis() values from the sensor nodes
         case 'c':
+          Serial.println(">>>>>>>>>>>C<<<<<<<<<<<<<<<");
           process_c_message(header);
+          break;
+        case 'd':
+          // process_d_message(header, module_list);
+          process_d_message(header);
           break;
         default:
           network.read(header, 0, 0);
@@ -432,6 +546,7 @@ bool listen_to_network()
   }
   return 0;
 }
+
 
 void setup() 
 {
@@ -450,15 +565,19 @@ void setup()
     // if mesh.begin() returns false for a master node, then radio.begin() returned false.
     Serial.println(F("Hardware offline."));
   }
+
 }
 //tempo máximo que a central fica no loop principal antes de reinicar tudo
-unsigned long t_max = 10000;
+
 void loop() 
 {
   // tempo decorrido desde o inicio do loop
-  unsigned long tempo = millis();  
-  int mensagens_recebidas=0;
-  while(millis()-tempo<t_max)
+  unsigned long t_ciclo         = 8000;
+  unsigned long t_max_escuta        = 8000;
+  unsigned long tempo_inicial_ciclo = millis();  
+  int mensagens_recebidas           =0;
+
+  while(millis()-tempo_inicial_ciclo<t_max_escuta)
   {
     mesh.update(); // Manter a malha atualizada
     mesh.DHCP(); // Essa funcao só é adicionada na central para garantir que ela enderece os periféricos corretamente
@@ -468,8 +587,14 @@ void loop()
   if (mensagens_recebidas == 0)
   {
     Serial.print("Nenhuma mensagem recebida nos últimos ");
-    Serial.print(t_max/1000);
+    Serial.print(t_ciclo/1000);
     Serial.println(" segundos.");
   }
-  
+  unsigned long tempo_final_ciclo = millis();
+  ciclo_atual.print_cycle_status();
+  ciclo_atual.new_cycle();
+  delay(300);
+  minha_rede.print_mesh_stattus();
+  //delay(t_ciclo-tempo_final_ciclo);
+
 }
