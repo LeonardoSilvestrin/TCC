@@ -49,7 +49,7 @@ int id_update()
   Serial.print("myID: ");
   Serial.println(mesh.getNodeID());
   unsigned long t0 = millis();
-  while(millis()-t0<1000) // fica 1 segundo em loop escutando se a central está respondendo
+  while(millis()-t0<500) // fica 1 segundo em loop escutando se a central está respondendo
   {
     mesh.update();
     if (network.available()) 
@@ -60,8 +60,8 @@ int id_update()
       Serial.print(F("ID recebido da central: "));
       Serial.println(id);
       mesh.releaseAddress();
-      return id;
       delay(1);
+      return id;
     }
   }
   Serial.print("Falha, resetando ID para base: ");
@@ -181,17 +181,21 @@ void setup()
   connect_to_mesh(myID);  
   mesh.update();
   myID = id_update();
+  connect_to_mesh(myID);
   while(myID==baseID)
   {
     Serial.println("Solicitando novo id para a central...");
     myID = id_update();
-    connect_to_mesh(myID);
     delay(1);
+    Serial.print(">>>");
+    Serial.println(myID);
+    connect_to_mesh(myID);
   }
   // se a central responder a solicitação de id com 0 o sensor fica em loop infinito.
   if (myID == 0) 
   {
     myID = baseID;
+    mesh.releaseAddress();
     Serial.print("Desconectado da rede.");
     while (1){}      
   }

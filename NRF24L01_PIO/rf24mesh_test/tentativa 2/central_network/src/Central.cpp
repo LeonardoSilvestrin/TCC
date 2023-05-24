@@ -198,8 +198,6 @@ class Cycle_status
     }
     void data_received(int id, float bateria, float temperatura, float umidade)
     {
-      Serial.print("ID DATA RECEIVED:");
-      Serial.println(id);
       this->sensor_sent_data[id-1]  = true;
       this->data_sent[3*(id-1)]     = bateria;
       this->data_sent[3*(id-1)+1]   = temperatura;
@@ -335,6 +333,7 @@ bool process_c_message(RF24NetworkHeader header)
 
   network.read(header, uniqueID_and_type, sizeof(uniqueID_and_type));
   
+  
   int requester_network_id =    (int)mesh.getNodeID(header.from_node);
   uint8_t* requester_hardware_id = uniqueID_and_type;
   char sensor_type = (char)requester_hardware_id[8];
@@ -374,11 +373,7 @@ bool process_c_message(RF24NetworkHeader header)
     if(requester_network_id == 255) 
     {
       Serial.println("Novo sensor solicitando entrada na rede, gerando ID.");
-      
       new_sensor_id = minha_rede.generate_new_ID();
-      //delay(1);
-      Serial.print(">>");
-      Serial.println(new_sensor_id);
       if(answer_id_request_and_listen_to_ACK(new_sensor_id,requester_network_id))
       {
         minha_rede.add_entity(new_sensor_id,sensor_type,requester_hardware_id);
@@ -520,14 +515,12 @@ bool listen_to_network()
   {
     RF24NetworkHeader header;
     network.peek(header); //ler o header da próxima mensagem da fila
-    if(is_id_valid(mesh.getNodeID(header.from_node)))
+    if(is_id_valid(mesh.getNodeID(header.from_node))&&minha_rede.is_id_in_the_mesh(mesh.getNodeID(header.from_node)))
     {
-      Serial.print((char)header.type);
       switch (header.type) 
       {
         // Display the incoming millis() values from the sensor nodes
         case 'c':
-          Serial.println(">>>>>>>>>>>C<<<<<<<<<<<<<<<");
           process_c_message(header);
           break;
         case 'd':
@@ -555,7 +548,7 @@ void setup()
   Serial.println("\n########################################################################");
   mesh.setNodeID(0); // 0 -> central
   Serial.println(mesh.getNodeID());
-  radio.setRetries(5, 5);
+  radio.setRetries(5, 10);
   radio.begin();
   radio.setPALevel(RF24_PA_MIN);
   radio.setChannel(125);
@@ -594,7 +587,5 @@ void loop()
   ciclo_atual.print_cycle_status();
   ciclo_atual.new_cycle();
   delay(300);
-  minha_rede.print_mesh_stattus();
   //delay(t_ciclo-tempo_final_ciclo);
-
 }
