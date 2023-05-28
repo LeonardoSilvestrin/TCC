@@ -1,5 +1,8 @@
 //Include Libraries
 #include <Arduino.h>
+
+#include <EEPROM.h>
+
 #include <SPI.h>
 #include <RF24.h>
 #include <RF24Network.h>
@@ -38,6 +41,12 @@ class Network_configuration
     bool ids_in_use[256];
     uint8_t unique_hardware_id_list[256*8-2*8]; // -2x9 por que não precisa salvar o ID único da central nem do endereço de entrada 255
     bool module_types[254];
+    //==========================================================================================================================================
+    // EEPROM Indexes to get data back from EEPROM after reset
+    int index_num_of_modules = 0; // starts in eeprom[0]
+    int index_ids_in_use = index_num_of_modules + sizeof(num_of_modules); // starts in eeprom [4]
+    int index_unique_hardware_id_list = index_ids_in_use + sizeof(ids_in_use)/8; // starts in eeprom[36]
+    int index_module_types = index_unique_hardware_id_list + sizeof(unique_hardware_id_list); //starts in eeprom[2332]
 
   public:
 
@@ -51,19 +60,125 @@ class Network_configuration
         this-> ids_in_use[i] = false;
       }
     }
+    void save_num_of_modules()
+    {
+      EEPROM.write(index_num_of_modules, (uint8_t)num_of_modules);
+    }
+    void recover_num_of_modules()
+    {
+      uint8_t _num_of_modules = 0;
+      EEPROM.get(index_num_of_modules, _num_of_modules);
+      this -> num_of_modules = (int)_num_of_modules;
+    }
     
-    void recover_network_config(int num_of_modules, bool* ids_in_use, uint32_t* unique_hardware_id_list, bool* module_types)
-    {  
-      this->num_of_modules = num_of_modules;
-      for (int i = 0; i < 256; i++) 
+    /* ids in use com o print da eeprom para testes
+    void save_ids_in_use_and_print()
+    {
+      uint8_t buffer_ids_in_use[sizeof(ids_in_use)/8];
+      for (int i = 0; i < (int)(sizeof(ids_in_use)/8); i++) 
       {
-        this->ids_in_use[i] = ids_in_use[i];
-        this->module_types[i] = module_types[i];
-        for(int j=0;j<8;j++)
+        buffer_ids_in_use[i] = 0;
+        Serial.print(i);
+        Serial.print(" - ");
+        for(int j = 0; j< 8; j++)
         {
-          this->unique_hardware_id_list[i+j] = unique_hardware_id_list[i+j];
+          int ids_aux_index = 8*i+j;
+          bool bit = ids_in_use[ids_aux_index];
+          buffer_ids_in_use[i] |= (bit<<j);
+          Serial.print(ids_in_use[ids_aux_index]);
+        }
+        Serial.print(" -- ");
+        Serial.println(buffer_ids_in_use[i]);
+      }
+      //EEPROM.put(index_ids_in_use, buffer_ids_in_use);
+    }
+    */
+    
+    void save_ids_in_use()
+    {
+      uint8_t buffer_ids_in_use[sizeof(ids_in_use)/8];
+      for (int i = 0; i < (int)(sizeof(ids_in_use)/8); i++) 
+      {
+        buffer_ids_in_use[i] = 0;
+        for(int j = 0; j< 8; j++)
+        {
+          int ids_aux_index = 8*i+j;
+          bool bit = ids_in_use[ids_aux_index];
+          buffer_ids_in_use[i] |= (bit<<j);
         }
       }
+      EEPROM.put(index_ids_in_use, buffer_ids_in_use);
+    }
+     
+    void recover_ids_in_use()
+    {
+      uint8_t buffer_ids_in_use[sizeof(ids_in_use)/8];
+      EEPROM.get(index_ids_in_use,buffer_ids_in_use);
+      for (int i = 0; i < (int)(sizeof(ids_in_use)/8); i++) 
+      {
+        for (int j = 0; j<8;j++)
+        {
+          bool bit = buffer_ids_in_use[i] & (1<<j);
+          Serial.print(bit);
+          //this->ids_in_use[8*i+j] = bit;
+        }
+        Serial.println("");
+      }
+    }
+
+    void save_module_types()
+    {
+      uint8_t buffer_module_types[sizeof(module_types)/8];
+      for (int i = 0; i < (int)(sizeof(module_types)/8); i++) 
+      {
+        buffer_module_types[i] = 0;
+        for(int j = 0; j< 8; j++)
+        {
+          int aux_index = 8*i+j;
+          bool bit = module_types[aux_index];
+          buffer_module_types[i] |= (bit<<j);
+        
+      }
+      //EEPROM.put(index_module_types, buffer_module_types);
+      }
+    }
+
+    void recover_module_types()
+    {
+      uint8_t buffer_module_types[sizeof(module_types)/8];
+      //EEPROM.get(index_ids_in_use,buffer_module_types);
+      for (int i = 0; i < (int)(sizeof(module_types)/8); i++) 
+      {       
+        for (int j = 0; j<8;j++)
+        {
+          bool bit = buffer_module_types[i] & (1<<j);
+          this->module_types[8*i+j] = bit;
+        }
+      }
+    }
+    void save_hardware_unique_ids()
+    {
+      uint8_t buffer_unique_hardware_id_list[sizeof(unique_hardware_id_list)];
+      memcpy(buffer_unique_hardware_id_list, unique_hardware_id_list,sizeof(unique_hardware_id_list));
+      
+    }
+    void recover_hardware_unique_ids()
+    {
+      
+    }
+    void save_network_config()
+    {
+      save_num_of_modules();
+      save_ids_in_use();
+      // save_hardware_unique_ids();
+      save_module_types();
+    }
+    void recover_network_config()
+    {
+      recover_num_of_modules();
+      recover_ids_in_use();
+      // recover_hardware_unique_ids();
+      recover_module_types();
     }
   
     // adiciona entidade na rede
@@ -178,8 +293,12 @@ class Network_configuration
     }
 
 };
+
 Network_configuration minha_rede;
 
+
+
+//==========================================================================================================================================
 class Cycle_status
 {
   private:
@@ -248,11 +367,14 @@ class Cycle_status
     }
 };
 
-
 Cycle_status ciclo_atual;
 
 // ==========================================Funções de interpretação e tratamento de mensagens============================================
 
+void interpret_server_message()
+{
+
+}
 
 bool is_id_valid(int id)
 {
@@ -429,8 +551,7 @@ bool process_c_message(RF24NetworkHeader header)
     }
   }
   
-  /*
-  // =================================================< TERCEIRO CASO: Há solicitação de << saída >> de módulo >========================================================
+  // ===========  ======================================< TERCEIRO CASO: Há solicitação de << saída >> de módulo >========================================================
   if(saida_modulo)
   {
      if(requester_network_id != 255)
@@ -445,7 +566,6 @@ bool process_c_message(RF24NetworkHeader header)
       }
      }
   }
-  */
   // =================================================< QUARTO CASO: Não há solicitações vindas do servidor >========================================================
   if(!(entrada_novo_modulo || saida_modulo))
     {
@@ -552,6 +672,9 @@ void setup()
   radio.begin();
   radio.setPALevel(RF24_PA_MIN);
   radio.setChannel(125);
+
+  EEPROM.begin(4);
+
   // Connect to the mesh
   if (!mesh.begin(125,RF24_250KBPS)) 
   {
@@ -563,9 +686,11 @@ void setup()
 //tempo máximo que a central fica no loop principal antes de reinicar tudo
 
 void loop() 
-{
+{ 
+  //minha_rede.recover_network_config();
   // tempo decorrido desde o inicio do loop
-  unsigned long t_ciclo         = 8000;
+ /*
+  unsigned long t_ciclo             = 8000;
   unsigned long t_max_escuta        = 8000;
   unsigned long tempo_inicial_ciclo = millis();  
   int mensagens_recebidas           =0;
@@ -584,8 +709,16 @@ void loop()
     Serial.println(" segundos.");
   }
   unsigned long tempo_final_ciclo = millis();
-  ciclo_atual.print_cycle_status();
-  ciclo_atual.new_cycle();
-  delay(300);
+  */ 
+  // ciclo_atual.print_cycle_status();
+  // ciclo_atual.new_cycle();
+  //minha_rede.save_network_config();
+  //minha_rede.save_ids_in_use();
+  delay(100);
+  minha_rede.recover_ids_in_use();
+  Serial.println(minha_rede.get_num_of_modules());
+  minha_rede.print_mesh_stattus();
+  delay(10000);
+ // ESP.deepSleep(5e6);
   //delay(t_ciclo-tempo_final_ciclo);
 }

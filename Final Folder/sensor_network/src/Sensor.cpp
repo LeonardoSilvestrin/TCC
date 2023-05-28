@@ -165,7 +165,7 @@ void setup()
   // Printa o último ID de rede do módulo bem como o número de série
 
   Serial.print("Meu último ID: ");
-  Serial.println(myID);
+  Serial.println(myOldID);
   Serial.print("UniqueID: ");
 	for (size_t i = 0; i < UniqueIDsize; i++)
 	{
@@ -200,7 +200,7 @@ void setup()
     while (1){}      
   }
   //---------------------------------------------------------------
-  EEPROM_save_id(myID);
+  // EEPROM_save_id(myID);
 }
 
 float cc = 0;
