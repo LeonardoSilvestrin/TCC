@@ -43,10 +43,10 @@ class Network_configuration
     bool module_types[254];
     //==========================================================================================================================================
     // EEPROM Indexes to get data back from EEPROM after reset
-    int index_num_of_modules = 0; // starts in eeprom[0]
-    int index_ids_in_use = index_num_of_modules + sizeof(num_of_modules); // starts in eeprom [4]
-    int index_unique_hardware_id_list = index_ids_in_use + sizeof(ids_in_use)/8; // starts in eeprom[36]
-    int index_module_types = index_unique_hardware_id_list + sizeof(unique_hardware_id_list); //starts in eeprom[2332]
+    int EEPROM_index_num_of_modules = 0; // starts in eeprom[0]
+    int EEPROM_index_ids_in_use = EEPROM_index_num_of_modules + sizeof(num_of_modules); // starts in eeprom [4]
+    int EEPROM_index_unique_hardware_id_list = EEPROM_index_ids_in_use + sizeof(ids_in_use)/8; // starts in eeprom[36]
+    int EEPROM_index_module_types = EEPROM_index_unique_hardware_id_list + sizeof(unique_hardware_id_list); //starts in eeprom[2332]
 
   public:
 
@@ -62,12 +62,13 @@ class Network_configuration
     }
     void save_num_of_modules()
     {
-      EEPROM.write(index_num_of_modules, (uint8_t)num_of_modules);
+      EEPROM.write(EEPROM_index_num_of_modules, (uint8_t)num_of_modules);
     }
+ 
     void recover_num_of_modules()
     {
       uint8_t _num_of_modules = 0;
-      EEPROM.get(index_num_of_modules, _num_of_modules);
+      EEPROM.get(EEPROM_index_num_of_modules, _num_of_modules);
       this -> num_of_modules = (int)_num_of_modules;
     }
     
@@ -90,39 +91,38 @@ class Network_configuration
         Serial.print(" -- ");
         Serial.println(buffer_ids_in_use[i]);
       }
-      //EEPROM.put(index_ids_in_use, buffer_ids_in_use);
+      //EEPROM.put(EEPROM_index_ids_in_use, buffer_ids_in_use);
     }
     */
     
     void save_ids_in_use()
     {
-      uint8_t buffer_ids_in_use[sizeof(ids_in_use)/8];
+      uint8_t buffer_ids_in_use_to_eeprom[sizeof(ids_in_use)/8];
       for (int i = 0; i < (int)(sizeof(ids_in_use)/8); i++) 
       {
-        buffer_ids_in_use[i] = 0;
+        buffer_ids_in_use_to_eeprom[i] = 0;
         for(int j = 0; j< 8; j++)
         {
           int ids_aux_index = 8*i+j;
           bool bit = ids_in_use[ids_aux_index];
-          buffer_ids_in_use[i] |= (bit<<j);
+          buffer_ids_in_use_to_eeprom[i] |= (bit<<j);
         }
       }
-      EEPROM.put(index_ids_in_use, buffer_ids_in_use);
+      EEPROM.put(EEPROM_index_ids_in_use, buffer_ids_in_use_to_eeprom);
     }
      
     void recover_ids_in_use()
     {
-      uint8_t buffer_ids_in_use[sizeof(ids_in_use)/8];
-      EEPROM.get(index_ids_in_use,buffer_ids_in_use);
+      uint8_t buffer_ids_in_use_from_eeprom[sizeof(ids_in_use)/8]; 
+      EEPROM.get(EEPROM_index_ids_in_use,buffer_ids_in_use_from_eeprom);
+
       for (int i = 0; i < (int)(sizeof(ids_in_use)/8); i++) 
       {
         for (int j = 0; j<8;j++)
         {
-          bool bit = buffer_ids_in_use[i] & (1<<j);
-          Serial.print(bit);
-          //this->ids_in_use[8*i+j] = bit;
+          bool bit = buffer_ids_in_use_from_eeprom[i] & (1<<j);
+          this->ids_in_use[8*i+j] = bit;
         }
-        Serial.println("");
       }
     }
 
@@ -139,14 +139,14 @@ class Network_configuration
           buffer_module_types[i] |= (bit<<j);
         
       }
-      //EEPROM.put(index_module_types, buffer_module_types);
+      EEPROM.put(EEPROM_index_module_types, buffer_module_types);
       }
     }
 
     void recover_module_types()
     {
       uint8_t buffer_module_types[sizeof(module_types)/8];
-      //EEPROM.get(index_ids_in_use,buffer_module_types);
+      EEPROM.get(EEPROM_index_ids_in_use,buffer_module_types);
       for (int i = 0; i < (int)(sizeof(module_types)/8); i++) 
       {       
         for (int j = 0; j<8;j++)
@@ -156,28 +156,45 @@ class Network_configuration
         }
       }
     }
+    
     void save_hardware_unique_ids()
     {
       uint8_t buffer_unique_hardware_id_list[sizeof(unique_hardware_id_list)];
       memcpy(buffer_unique_hardware_id_list, unique_hardware_id_list,sizeof(unique_hardware_id_list));
-      
+      EEPROM.put(EEPROM_index_unique_hardware_id_list,buffer_unique_hardware_id_list);
     }
+    
     void recover_hardware_unique_ids()
     {
-      
+      uint8_t buffer_unique_hardware_id_list[sizeof(unique_hardware_id_list)];
+      EEPROM.get(EEPROM_index_unique_hardware_id_list,buffer_unique_hardware_id_list);
+      memcpy(unique_hardware_id_list,buffer_unique_hardware_id_list,sizeof(unique_hardware_id_list));
+      for(int i = 0; i<sizeof(unique_hardware_id_list)/8;i++)
+      {
+        Serial.print(i);
+        Serial.print(" - ");
+        for(int j=0;j<8;j++)
+        {
+          Serial.print(unique_hardware_id_list[8*i+j]);
+        }
+        Serial.println("");
+      }
     }
+    
     void save_network_config()
     {
       save_num_of_modules();
       save_ids_in_use();
-      // save_hardware_unique_ids();
+      save_hardware_unique_ids();
       save_module_types();
+      EEPROM.commit();
     }
+    
     void recover_network_config()
     {
       recover_num_of_modules();
       recover_ids_in_use();
-      // recover_hardware_unique_ids();
+      recover_hardware_unique_ids();
       recover_module_types();
     }
   
@@ -673,7 +690,7 @@ void setup()
   radio.setPALevel(RF24_PA_MIN);
   radio.setChannel(125);
 
-  EEPROM.begin(4);
+  EEPROM.begin(4000);
 
   // Connect to the mesh
   if (!mesh.begin(125,RF24_250KBPS)) 
@@ -687,9 +704,8 @@ void setup()
 
 void loop() 
 { 
-  //minha_rede.recover_network_config();
+  minha_rede.recover_network_config();
   // tempo decorrido desde o inicio do loop
- /*
   unsigned long t_ciclo             = 8000;
   unsigned long t_max_escuta        = 8000;
   unsigned long tempo_inicial_ciclo = millis();  
@@ -709,16 +725,11 @@ void loop()
     Serial.println(" segundos.");
   }
   unsigned long tempo_final_ciclo = millis();
-  */ 
-  // ciclo_atual.print_cycle_status();
-  // ciclo_atual.new_cycle();
-  //minha_rede.save_network_config();
-  //minha_rede.save_ids_in_use();
-  delay(100);
-  minha_rede.recover_ids_in_use();
-  Serial.println(minha_rede.get_num_of_modules());
+  
+  ciclo_atual.print_cycle_status();
+  ciclo_atual.new_cycle();
+  minha_rede.save_network_config();
   minha_rede.print_mesh_stattus();
-  delay(10000);
- // ESP.deepSleep(5e6);
+  ESP.deepSleep(5e6);
   //delay(t_ciclo-tempo_final_ciclo);
 }
