@@ -37,6 +37,7 @@ int modulo_inativo =        0;
 class Network_configuration
 {
   private:
+    bool network_changed = false;
     int num_of_modules = 1;
     bool ids_in_use[256];
     uint8_t unique_hardware_id_list[256*8-2*8]; // -2x9 por que não precisa salvar o ID único da central nem do endereço de entrada 255
@@ -60,9 +61,11 @@ class Network_configuration
         this-> ids_in_use[i] = false;
       }
     }
+    
     void save_num_of_modules()
     {
-      EEPROM.write(EEPROM_index_num_of_modules, (uint8_t)num_of_modules);
+      EEPROM.write(EEPROM_index_num_of_modules, (uint8_t)num_of_modules);    
+      EEPROM.commit();
     }
  
     void recover_num_of_modules()
@@ -108,7 +111,8 @@ class Network_configuration
           buffer_ids_in_use_to_eeprom[i] |= (bit<<j);
         }
       }
-      EEPROM.put(EEPROM_index_ids_in_use, buffer_ids_in_use_to_eeprom);
+      EEPROM.put(EEPROM_index_ids_in_use, buffer_ids_in_use_to_eeprom);    
+      EEPROM.commit();
     }
      
     void recover_ids_in_use()
@@ -139,7 +143,8 @@ class Network_configuration
           buffer_module_types[i] |= (bit<<j);
         
       }
-      EEPROM.put(EEPROM_index_module_types, buffer_module_types);
+      EEPROM.put(EEPROM_index_module_types, buffer_module_types);    
+      EEPROM.commit();
       }
     }
 
@@ -161,24 +166,37 @@ class Network_configuration
     {
       uint8_t buffer_unique_hardware_id_list[sizeof(unique_hardware_id_list)];
       memcpy(buffer_unique_hardware_id_list, unique_hardware_id_list,sizeof(unique_hardware_id_list));
-      EEPROM.put(EEPROM_index_unique_hardware_id_list,buffer_unique_hardware_id_list);
+      EEPROM.put(EEPROM_index_unique_hardware_id_list,buffer_unique_hardware_id_list);    
+      EEPROM.commit();
+      
     }
     
+    /*recover_hardware_ids com o print da eeprom para testes
+    void recover_hardware_unique_ids_and_print()
+    {
+      uint8_t buffer_unique_hardware_id_list[sizeof(unique_hardware_id_list)];
+      EEPROM.get(EEPROM_index_unique_hardware_id_list,buffer_unique_hardware_id_list);
+      memcpy(unique_hardware_id_list,buffer_unique_hardware_id_list,sizeof(unique_hardware_id_list));
+      Serial.print("Numero de sensores: ");
+      Serial.println(num_of_modules);
+      for(int i = 0; i<num_of_modules;i++) // max size = (int)sizeof(unique_hardware_id_list)/8
+      {
+        Serial.print(i+1);
+        Serial.print(" - ");
+        for(int j=0;j<8;j++)
+        {
+          Serial.print(unique_hardware_id_list[8*i+j],HEX);
+          if(j<7){Serial.print("-");}
+        }
+        Serial.println("");
+      }
+    }*/
+
     void recover_hardware_unique_ids()
     {
       uint8_t buffer_unique_hardware_id_list[sizeof(unique_hardware_id_list)];
       EEPROM.get(EEPROM_index_unique_hardware_id_list,buffer_unique_hardware_id_list);
       memcpy(unique_hardware_id_list,buffer_unique_hardware_id_list,sizeof(unique_hardware_id_list));
-      for(int i = 0; i<sizeof(unique_hardware_id_list)/8;i++)
-      {
-        Serial.print(i);
-        Serial.print(" - ");
-        for(int j=0;j<8;j++)
-        {
-          Serial.print(unique_hardware_id_list[8*i+j]);
-        }
-        Serial.println("");
-      }
     }
     
     void save_network_config()
@@ -187,13 +205,14 @@ class Network_configuration
       save_ids_in_use();
       save_hardware_unique_ids();
       save_module_types();
-      EEPROM.commit();
+      this-> network_changed = false;
     }
     
     void recover_network_config()
     {
       recover_num_of_modules();
       recover_ids_in_use();
+      //recover_hardware_unique_ids();
       recover_hardware_unique_ids();
       recover_module_types();
     }
@@ -232,6 +251,7 @@ class Network_configuration
         Serial.print(" ");
       }
       Serial.println("");
+      this-> network_changed = true;
     }
     
     // remove entidade da rede
@@ -248,6 +268,7 @@ class Network_configuration
       {
         this->unique_hardware_id_list[id+i] = (uint8_t)0;
       }
+      this -> network_changed = true;
     }
     
     //ponteiro para o vetor que guarda o stattus da rede
@@ -309,6 +330,10 @@ class Network_configuration
       return &unique_hardware_id_list[8*(id-1)];
     }
 
+    bool get_network_changed()
+    {
+      return this->network_changed;
+    }
 };
 
 Network_configuration minha_rede;
@@ -328,8 +353,8 @@ class Cycle_status
       {
         this->sensor_sent_data[i]   = 0;
         this->data_sent[3*i]        = 0;
-        this->data_sent[3*(i+1)]    = 0;
-        this->data_sent[3*(i+2)]    = 0;
+        this->data_sent[3*i+1]    = 0;
+        this->data_sent[3*i+2]    = 0;
       }
     }
     void data_received(int id, float bateria, float temperatura, float umidade)
@@ -702,34 +727,46 @@ void setup()
 }
 //tempo máximo que a central fica no loop principal antes de reinicar tudo
 
+const float msec_to_mins = 60*1000;
+unsigned long t_cycle             = .5*msec_to_mins;
+
 void loop() 
 { 
+  unsigned long t_init = millis();
+  
   minha_rede.recover_network_config();
   // tempo decorrido desde o inicio do loop
-  unsigned long t_ciclo             = 8000;
-  unsigned long t_max_escuta        = 8000;
-  unsigned long tempo_inicial_ciclo = millis();  
-  int mensagens_recebidas           =0;
+  unsigned long t_listening         = 15e3;
+  int num_recieved_messages         =0;
 
-  while(millis()-tempo_inicial_ciclo<t_max_escuta)
+  while(millis()-t_init<t_listening)
   {
     mesh.update(); // Manter a malha atualizada
     mesh.DHCP(); // Essa funcao só é adicionada na central para garantir que ela enderece os periféricos corretamente
-    mensagens_recebidas += listen_to_network();
+    num_recieved_messages += listen_to_network();
     delay(1);
-  }  
-  if (mensagens_recebidas == 0)
+  }
+  if (num_recieved_messages == 0)
   {
     Serial.print("Nenhuma mensagem recebida nos últimos ");
-    Serial.print(t_ciclo/1000);
+    Serial.print((int)millis()/1000);
     Serial.println(" segundos.");
   }
-  unsigned long tempo_final_ciclo = millis();
-  
+
   ciclo_atual.print_cycle_status();
   ciclo_atual.new_cycle();
-  minha_rede.save_network_config();
+  Serial.print("Network changed: ");
+  Serial.println(minha_rede.get_network_changed());
+  if (minha_rede.get_network_changed())
+  {
+    minha_rede.save_network_config();
+  }
   minha_rede.print_mesh_stattus();
-  ESP.deepSleep(5e6);
-  //delay(t_ciclo-tempo_final_ciclo);
+  unsigned long t_fim = millis();
+~
+  delay(t_cycle - (t_fim - t_init));
+  Serial.print("Duração do Ciclo: ");
+  Serial.println(millis()-t_init);
+  //ESP.deepSleep(5e6);
+  //delay(t_cycle-tempo_final_ciclo);
 }
