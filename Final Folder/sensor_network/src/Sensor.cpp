@@ -24,7 +24,8 @@
 #define tipo 's'
 #define baseID 255
 #define uC_serial  9600 // velocidade de comunicação do micro via porta serial
-#define dht_pin 5
+#define dht_pin 2 //D2
+#define LED_pin 3 //D3
 
 RF24 radio(CE, CSN); // CE, CSN
 RF24Network network(radio);
@@ -148,6 +149,8 @@ void setup()
   
   //---------------------------------------------------------------
   // Inicia o sensor de umidade do ar e temperatura dht11
+  pinMode(dht_pin, INPUT);
+  pinMode(LED_pin, OUTPUT);
   mydht.setup(dht_pin); 
   
   //---------------------------------------------------------------
@@ -203,36 +206,54 @@ void setup()
   // EEPROM_save_id(myID);
 }
 
-float cc = 0;
+const float msec_to_mins = 60*1000;
+unsigned long t_cycle             = .33*msec_to_mins;
+
 void loop() 
 { 
+  bool sent_data = false;
   myID = mesh._nodeID;
   if(myID != baseID)
   {
+    // ------------------------------------------------------------
+    // data loop
     unsigned long t_inicial_coleta_dados = millis();
     unsigned long t_max_para_enviar_dados = 5000;
     while(millis()-t_inicial_coleta_dados<t_max_para_enviar_dados)
     {
-      float bateria = 19;
-      float temperatura = 2.5+cc;
-      float umidade_do_solo = 70;
-      
-      //temperatura = mydht.getTemperature();
-      //int umidade_do_solo_in = analogRead(A0);
-      //float umidade_do_solo = map(umidade_do_solo_in,0,1024,0,100);
+      // float bateria = 19;
+      // float temperatura = 2.5+cc;
+      // float umidade_do_solo = 70;
+      float bateria = 100;
+      float temperatura = mydht.getTemperature();
+      int umidade_do_solo_in = analogRead(A0);
+      float umidade_do_solo = map(umidade_do_solo_in,0,1024,0,100);
 
       if(send_data(bateria, temperatura, umidade_do_solo))
       {
+        sent_data = true;
         break;
       }
     }
-    unsigned long t_final_coleta_dados = millis();
-    Serial.print("Fim do ciclo, tempo:");
+   unsigned long t_final_coleta_dados = millis();
+   Serial.print("Fim do ciclo, tempo:");
+   Serial.println(t_final_coleta_dados);
+   Serial.print("Meu ID de rede:");
+   Serial.println(mesh.getNodeID());
+   // ------------------------------------------------------------ 
+   if(sent_data)
+   {
     Serial.println(t_final_coleta_dados);
-    cc+=.1;
-    Serial.print("Meu ID de rede:");
-    Serial.println(mesh.getNodeID());
+    Serial.println(t_inicial_coleta_dados);
+    Serial.println(t_cycle);
+    Serial.println((t_cycle - (t_final_coleta_dados-t_inicial_coleta_dados))/msec_to_mins);
+   // delay(t_cycle - (t_final_coleta_dados-t_inicial_coleta_dados));
     delay(10000);
+   }
+   else
+   {
+    delay(100);
+   }
   }
   else
   {

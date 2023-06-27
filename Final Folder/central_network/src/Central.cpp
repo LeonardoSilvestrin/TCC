@@ -40,7 +40,7 @@ class Network_configuration
     bool network_changed = false;
     int num_of_modules = 1;
     bool ids_in_use[256];
-    uint8_t unique_hardware_id_list[256*8-2*8]; // -2x9 por que não precisa salvar o ID único da central nem do endereço de entrada 255
+    uint8_t unique_hardware_id_list[256*8-2*8]; // -2x8 por que não precisa salvar o ID único da central nem do endereço de entrada 255
     bool module_types[254];
     //==========================================================================================================================================
     // EEPROM Indexes to get data back from EEPROM after reset
@@ -141,8 +141,7 @@ class Network_configuration
           int aux_index = 8*i+j;
           bool bit = module_types[aux_index];
           buffer_module_types[i] |= (bit<<j);
-        
-      }
+        }
       EEPROM.put(EEPROM_index_module_types, buffer_module_types);    
       EEPROM.commit();
       }
@@ -727,44 +726,48 @@ void setup()
 }
 //tempo máximo que a central fica no loop principal antes de reinicar tudo
 
-const float msec_to_mins = 60*1000;
-unsigned long t_cycle             = .5*msec_to_mins;
-
+const float mins_to_msec          = 60*1000;
+unsigned long t_cycle             = .5*mins_to_msec;
+unsigned long t_last_cycle        = 0; 
 void loop() 
 { 
   unsigned long t_init = millis();
-  
-  minha_rede.recover_network_config();
+  //minha_rede.recover_network_config();
   // tempo decorrido desde o inicio do loop
   unsigned long t_listening         = 15e3;
   int num_recieved_messages         =0;
+  mesh.update();
+  mesh.DHCP();
+  listen_to_network();
+  if (t_init - t_last_cycle > 20)
+  {
+    while(millis()-t_init<t_listening)
+    {
+      mesh.update(); // Manter a malha atualizada
+      mesh.DHCP(); // Essa funcao só é adicionada na central para garantir que ela enderece os periféricos corretamente
+      num_recieved_messages += listen_to_network();
+      delay(1);
+    }
 
-  while(millis()-t_init<t_listening)
-  {
-    mesh.update(); // Manter a malha atualizada
-    mesh.DHCP(); // Essa funcao só é adicionada na central para garantir que ela enderece os periféricos corretamente
-    num_recieved_messages += listen_to_network();
-    delay(1);
-  }
-  if (num_recieved_messages == 0)
-  {
-    Serial.print("Nenhuma mensagem recebida nos últimos ");
-    Serial.print((int)millis()/1000);
-    Serial.println(" segundos.");
-  }
+    if (num_recieved_messages == 0)
+    {
+      Serial.print("Nenhuma mensagem recebida nos últimos ");
+      Serial.print((int)millis()/1000);
+      Serial.println(" segundos.");
+    }
 
-  ciclo_atual.print_cycle_status();
-  ciclo_atual.new_cycle();
-  Serial.print("Network changed: ");
-  Serial.println(minha_rede.get_network_changed());
-  if (minha_rede.get_network_changed())
-  {
-    minha_rede.save_network_config();
+    ciclo_atual.print_cycle_status();
+    ciclo_atual.new_cycle();
+    Serial.print("Network changed: ");
+    Serial.println(minha_rede.get_network_changed());
+    if (minha_rede.get_network_changed())
+    {
+      // minha_rede.save_network_config();
+    }
+    minha_rede.print_mesh_stattus();
+    unsigned long t_last_cycle = millis();
   }
-  minha_rede.print_mesh_stattus();
-  unsigned long t_fim = millis();
-~
-  delay(t_cycle - (t_fim - t_init));
+  delay(100);
   Serial.print("Duração do Ciclo: ");
   Serial.println(millis()-t_init);
   //ESP.deepSleep(5e6);
