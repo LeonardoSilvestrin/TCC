@@ -1,7 +1,0 @@
-O byte channel é importante porque ele define o canal de comunicação que será usado pelo módulo NRF24L01. O canal é uma frequência de rádio específica dentro da faixa de frequência de 2,4 GHz usada pelo NRF24L01 para a comunicação sem fio.
-
-Cada canal tem uma frequência central e uma largura de banda específicas, e a escolha do canal pode afetar a qualidade da comunicação, especialmente em ambientes com interferências de outras fontes de rádio.
-
-O módulo NRF24L01 pode operar em 126 canais diferentes, numerados de 0 a 125. É importante que todos os dispositivos em uma rede NRF24L01 estejam configurados para usar o mesmo canal, para que possam se comunicar corretamente.
-
-No código fornecido, o valor do byte channel é definido por uma constante CHANNEL e é passado para a função radio.setChannel(channel) para configurar o canal de comunicação do módulo NRF24L01.
