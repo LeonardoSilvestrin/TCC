@@ -333,6 +333,10 @@ class Network_configuration
     {
       return this->network_changed;
     }
+    void set_network_changed(bool did_it)
+    {
+      this->network_changed = did_it;
+    }
 };
 
 Network_configuration minha_rede;
@@ -405,6 +409,10 @@ class Cycle_status
     float* get_data()
     {
       return this->data_sent;
+    }
+    bool did_sensor_sent_data(int id)
+    {
+      return this->sensor_sent_data[id];
     }
 };
 
@@ -683,11 +691,21 @@ bool listen_to_network()
         // Display the incoming millis() values from the sensor nodes
         case 'c':
           process_c_message(header);
-          break;
+          return 0;
         case 'd':
           // process_d_message(header, module_list);
-          process_d_message(header);
-          break;
+          if (ciclo_atual.did_sensor_sent_data(header.from_node))
+          {
+            Serial.print("O sensor de ID: ");
+            Serial.print(header.from_node);
+            Serial.println(" enviou dados duas vezes neste ciclo, sensor dessincronizado.");
+            return 0;
+          }
+          else
+          {
+            process_d_message(header);
+            return 1;
+          }
         default:
           network.read(header, 0, 0);
           Serial.println("Mensagem de tipo desconhecido");
@@ -695,7 +713,7 @@ bool listen_to_network()
           Serial.println((char)header.type);
           break;
       }
-      return 1;
+      return 0;
     }
   }
   return 0;
@@ -726,50 +744,42 @@ void setup()
 }
 //tempo máximo que a central fica no loop principal antes de reinicar tudo
 
-const float mins_to_msec          = 60*1000;
-unsigned long t_cycle             = .5*mins_to_msec;
-unsigned long t_last_cycle        = 0; 
+const float mins_to_msec          = 60ul*1000ul;
+unsigned long t_cycle             = .33*mins_to_msec;
+unsigned long t_cycle_start             = 0;
+unsigned long cycle_counter      = 0; 
 void loop() 
 { 
   unsigned long t_init = millis();
   //minha_rede.recover_network_config();
   // tempo decorrido desde o inicio do loop
-  unsigned long t_listening         = 15e3;
-  int num_recieved_messages         =0;
-  mesh.update();
-  mesh.DHCP();
-  listen_to_network();
-  if (t_init - t_last_cycle > 20)
+  int num_recieved_messages = 0;
+  for(int i=0;i<20;i++)
   {
-    while(millis()-t_init<t_listening)
-    {
-      mesh.update(); // Manter a malha atualizada
-      mesh.DHCP(); // Essa funcao só é adicionada na central para garantir que ela enderece os periféricos corretamente
-      num_recieved_messages += listen_to_network();
-      delay(1);
-    }
-
-    if (num_recieved_messages == 0)
-    {
-      Serial.print("Nenhuma mensagem recebida nos últimos ");
-      Serial.print((int)millis()/1000);
-      Serial.println(" segundos.");
-    }
-
+    mesh.update();
+    mesh.DHCP();
+    num_recieved_messages += listen_to_network();
+    delay(5);
+  }
+  if (num_recieved_messages == 1)
+  {
+    t_cycle_start = millis();
+    cycle_counter++;
+  }
+  if (t_init - t_cycle_start > t_cycle && cycle_counter >0)
+  {
     ciclo_atual.print_cycle_status();
     ciclo_atual.new_cycle();
+  }
+  if (minha_rede.get_network_changed())
+  {
     Serial.print("Network changed: ");
     Serial.println(minha_rede.get_network_changed());
-    if (minha_rede.get_network_changed())
-    {
-      // minha_rede.save_network_config();
-    }
+    // minha_rede.save_network_config();
     minha_rede.print_mesh_stattus();
-    unsigned long t_last_cycle = millis();
+    minha_rede.set_network_changed(0);
   }
   delay(100);
-  Serial.print("Duração do Ciclo: ");
-  Serial.println(millis()-t_init);
   //ESP.deepSleep(5e6);
   //delay(t_cycle-tempo_final_ciclo);
 }

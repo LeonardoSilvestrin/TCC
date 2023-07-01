@@ -206,8 +206,8 @@ void setup()
   // EEPROM_save_id(myID);
 }
 
-const float msec_to_mins = 60*1000;
-unsigned long t_cycle             = .33*msec_to_mins;
+const float msec_to_mins = 60UL*1000ul;
+unsigned long t_cycle = .33*msec_to_mins;
 
 void loop() 
 { 
@@ -238,17 +238,14 @@ void loop()
    unsigned long t_final_coleta_dados = millis();
    Serial.print("Fim do ciclo, tempo:");
    Serial.println(t_final_coleta_dados);
+   Serial.print("Central recebeu dados neste ciclo? ");
+   Serial.println(sent_data);
    Serial.print("Meu ID de rede:");
    Serial.println(mesh.getNodeID());
    // ------------------------------------------------------------ 
    if(sent_data)
    {
-    Serial.println(t_final_coleta_dados);
-    Serial.println(t_inicial_coleta_dados);
-    Serial.println(t_cycle);
-    Serial.println((t_cycle - (t_final_coleta_dados-t_inicial_coleta_dados))/msec_to_mins);
-   // delay(t_cycle - (t_final_coleta_dados-t_inicial_coleta_dados));
-    delay(10000);
+    delay(t_cycle - (t_final_coleta_dados-t_inicial_coleta_dados));
    }
    else
    {
