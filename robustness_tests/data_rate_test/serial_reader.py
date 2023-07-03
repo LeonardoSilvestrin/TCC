@@ -3,23 +3,23 @@ import serial.tools.list_ports
 # Get a list of all available serial ports
 ports = serial.tools.list_ports.comports()
 
-# Iterate through each port and try reading data
+# Iterate through each port and try reading data_list
+ser_list = []
+data_list = []
+for port in ports:
+    ser_list.append(serial.Serial(port.device))
+# Read and print data_list from the serial port
 try:
     # Open the serial port
-    ser1 = serial.Serial(ports[0].device)
-    ser2 = serial.Serial(ports[1].device)
-    
-    # Read and print data from the serial port
     while True:
         try:
-            data1 = ser1.readline().decode('utf-8', errors='ignore').strip()
-            data2 = ser2.readline().decode('utf-8', errors='ignore').strip()
-            if data1 or data2:
-                print(f"Data received from {ports[0].device}: {data1} and {ports[1].device}: {data2}")
-        
+            for ser in ser_list:
+                data_list.append((ser.readline().decode('utf-8', errors='ignore').strip(),ser.port))
+            for data in data_list:
+                print(data[0])
+            print(10*'-')
         except UnicodeDecodeError:
             # Handle UnicodeDecodeError if necessary
-            print(f"UnicodeDecodeError occurred while decoding data from {port.device}")
-
+            pass 
 except serial.SerialException:
     print(f"Error opening serial port {port.device}")

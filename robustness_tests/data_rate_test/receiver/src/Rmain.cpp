@@ -23,18 +23,37 @@ void setup() {
   radio.setChannel(125); //seta o canal 125 para operação => 2,525 GHz (2,4 + 0,125) 
 
   const uint64_t address = 1; // Replace with your desired address
+  const uint64_t address2 = 2; // Replace with your desired address
   radio.openReadingPipe(1, address); 
+  radio.openReadingPipe(2, address2); 
   radio.startListening();
+  Serial.println("");
 }
 
-int contador; // Assuming the received data size is 32 bytes or less
-uint8_t receivedData;
-int *pointer_to_data;
+unsigned long receivedData;
+unsigned long contador_de_pacotes = 0;
+bool cycle = 0;
 void loop() {
-  if(radio.available())
+  if (radio.available()) 
   {
     radio.read(&receivedData, sizeof(receivedData));
-    Serial.println(receivedData);
+    cycle = 1;
+  } 
+  if (cycle)
+  {
+    while (cycle)
+    {
+      if(radio.available())
+      {
+        radio.read(&receivedData, sizeof(receivedData));
+        contador_de_pacotes++;
+        Serial.println(receivedData);
+        cycle = receivedData;
+      }
+      yield();
+    }
+    Serial.println(contador_de_pacotes-1);
+    contador_de_pacotes = 0;
   }
-  delay(10);
+  cycle = 0;
 }
