@@ -13,8 +13,23 @@
 
 RF24 radio(CE, CSN);
 
+int* message_list = nullptr;  // Ponteiro para a lista
+int list_size = 0;       // Tamanho atual da lista
 
-void setup() {
+void print_list_to_serial(int* list, int size) 
+{
+  for (int i = 0; i < size; i++) 
+  {
+    Serial.print(list[i]);
+    if (i < size - 1) {
+      Serial.print(",");
+    }
+  }
+  Serial.println();  // Print a newline character at the end
+}
+
+void setup() 
+{
   Serial.begin(9600);
   // put your setup code here, to run once:
   radio.begin();
@@ -31,29 +46,27 @@ void setup() {
 }
 
 unsigned long receivedData;
-unsigned long contador_de_pacotes = 0;
-bool cycle = 0;
-void loop() {
-  if (radio.available()) 
+unsigned long t_break = 10000;
+unsigned long t_last_message = 0;
+bool ja_printou = false;
+void loop() 
+{
+  if(radio.available())
   {
     radio.read(&receivedData, sizeof(receivedData));
-    cycle = 1;
-  } 
-  if (cycle)
-  {
-    while (cycle)
+    int* temp_list = (int*)realloc(message_list, (list_size + 1) * sizeof(int));  // Reallocate memory for an additional element
+    if (temp_list) 
     {
-      if(radio.available())
-      {
-        radio.read(&receivedData, sizeof(receivedData));
-        contador_de_pacotes++;
-        Serial.println(receivedData);
-        cycle = receivedData;
-      }
-      yield();
+      message_list = temp_list;  // Assign the reallocated memory to the message_list pointer
+      message_list[list_size] = receivedData;  // Add the received data to the list
+      list_size++;
     }
-    Serial.println(contador_de_pacotes-1);
-    contador_de_pacotes = 0;
+    t_last_message = millis();
   }
-  cycle = 0;
+  if (millis()-t_last_message > t_break && !ja_printou)
+  {
+    print_list_to_serial(message_list, list_size);
+    ja_printou = true;
+  }
+  yield();
 }

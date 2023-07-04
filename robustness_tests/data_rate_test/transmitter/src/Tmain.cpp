@@ -31,30 +31,32 @@ void setup() {
 unsigned long delta_t = 1e2; // 10k microssegundos = 10 milissegundos
 //const unsigned long T = (60ul*1000ul)*.02; // 5 minutos
 const unsigned long T = 5000; // 5 segundos
-void loop() {
-  unsigned long message = 1; // Message to be transmitted
-  unsigned long messages_sent_this_cycle = 0;
-  unsigned long t_loop = 0;
-  unsigned long t_cycle_init = millis();
-  while(t_loop < T + t_cycle_init)
+int num_tests = 10;
+int n = 1;
+
+void loop() 
+{
+  while(n<=num_tests)
   {
-    message++;
-    Serial.println(message);
-    t_loop = millis();
-    radio.write(&message, sizeof(message));
-    messages_sent_this_cycle++;
-    delayMicroseconds(delta_t);
+    int message = n; // Message to be transmitted
+    unsigned long t_loop = 0;
+    unsigned long t_cycle_init = millis();
+    while(t_loop < T + t_cycle_init)
+    {
+      t_loop = millis();
+      radio.write(&message, sizeof(message));
+      Serial.print(message);
+      Serial.print(",");
+      delayMicroseconds(delta_t);
+    }
+    Serial.println();
+    //delta_t-=5;
+    //if(delta_t == 0)
+    //{
+    //  Serial.print("End of test");
+    //  while(1){}
+    //}
+    n++;
   }
-  //Serial.print("Packages Sent:");
-  message = 0;
-  radio.write(&message, sizeof(message));
-  Serial.print(messages_sent_this_cycle);
-  Serial.print(",");
-  Serial.println(delta_t);
-  delta_t-=5;
-  if(delta_t == 0)
-  {
-    Serial.print("End of test");
-    while(1){}
-  }
+  while(1){}
 }
