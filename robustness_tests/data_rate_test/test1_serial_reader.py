@@ -4,7 +4,7 @@ import select
 
 # Get a list of all available serial ports
 ports = serial.tools.list_ports.comports()
-csv_file = open('teste_1v1_perda_de_pacotes.csv', 'w', newline='')
+csv_file = open('test_1v1_avg_pack_loss.csv', 'w', newline='')
 csv_writer = csv.writer(csv_file)
 
 # Create a list to hold the serial objects and data

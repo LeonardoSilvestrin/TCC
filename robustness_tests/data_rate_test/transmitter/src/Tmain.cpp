@@ -28,10 +28,10 @@ void setup() {
   radio.stopListening(); // Stop listening to send data
 }
 
-unsigned long delta_t = 1e2; // 10k microssegundos = 10 milissegundos
+unsigned long delta_t = 5; // 10k microssegundos = 10 milissegundos
 //const unsigned long T = (60ul*1000ul)*.02; // 5 minutos
 const unsigned long T = 5000; // 5 segundos
-int num_tests = 10;
+int num_tests = 50;
 int n = 1;
 
 void loop() 
@@ -47,6 +47,7 @@ void loop()
       radio.write(&message, sizeof(message));
       Serial.print(message);
       Serial.print(",");
+      //delay(delta_t);
       delayMicroseconds(delta_t);
     }
     Serial.println();

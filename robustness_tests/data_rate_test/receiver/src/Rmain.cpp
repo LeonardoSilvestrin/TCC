@@ -46,6 +46,7 @@ void setup()
 }
 
 unsigned long receivedData;
+unsigned long last_message;
 unsigned long t_break = 10000;
 unsigned long t_last_message = 0;
 bool ja_printou = false;
@@ -54,6 +55,17 @@ void loop()
   if(radio.available())
   {
     radio.read(&receivedData, sizeof(receivedData));
+    if(receivedData == last_message+1)
+    {
+      Serial.println();
+    }
+    else
+    {
+      Serial.print(receivedData);
+      Serial.print(",");
+    }
+    last_message = receivedData;
+    /*
     int* temp_list = (int*)realloc(message_list, (list_size + 1) * sizeof(int));  // Reallocate memory for an additional element
     if (temp_list) 
     {
@@ -61,12 +73,14 @@ void loop()
       message_list[list_size] = receivedData;  // Add the received data to the list
       list_size++;
     }
+    */
     t_last_message = millis();
-  }
+  }/*
   if (millis()-t_last_message > t_break && !ja_printou)
   {
     print_list_to_serial(message_list, list_size);
     ja_printou = true;
   }
+  */
   yield();
 }
