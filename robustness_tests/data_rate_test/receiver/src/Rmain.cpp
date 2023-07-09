@@ -55,11 +55,11 @@ void loop()
   if(radio.available())
   {
     radio.read(&receivedData, sizeof(receivedData));
-    if(receivedData == last_message+1)
+   if(receivedData != last_message)
     {
       Serial.println();
     }
-    else
+   else
     {
       Serial.print(receivedData);
       Serial.print(",");

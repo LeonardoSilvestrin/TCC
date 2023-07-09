@@ -13,51 +13,62 @@
 
 
 RF24 radio(CE, CSN);
-
+RF24 network(radio);
+RF24 mesh(network); 
 
 void setup() {
   Serial.begin(9600);
   // put your setup code here, to run once:
   radio.begin();
   radio.setPALevel(RF24_PA_MIN); //potencia mínima, desativa a amplificação de ruído
-  radio.setRetries(5, 5); // seta o padrão de 5 retries no envio de mensagem com 1500us (5*250 + 250) de intervalo entre elas
-  radio.setChannel(125); //seta o canal 125 para operação => 2,525 GHz (2,4 + 0,125) 
-
-  const uint64_t address = 2; // Replace with your desired address
+  radio.setChannel(125); //seta o canal 125 para operação => 2,525 GHz (2,4 + 0,125)
+  const uint64_t address = 1; // Replace with your desired address
   radio.openWritingPipe(address); 
   radio.stopListening(); // Stop listening to send data
 }
 
-unsigned long delta_t = 5; // 10k microssegundos = 10 milissegundos
-//const unsigned long T = (60ul*1000ul)*.02; // 5 minutos
-const unsigned long T = 5000; // 5 segundos
-int num_tests = 50;
-int n = 1;
+unsigned int delta_t = 20; // start frequency test = 1k uS = 1ms
+// tests counter for different values of delta_t
+int tests_counter = 0;
+
+// redundant tests for the same value of delta_t
+const int num_of_redundant_tests = 10;
+int redundant_test_counter = 0;
+
+// number of messages sent per redundant test
+const unsigned long num_of_messages_per_test = 500;
+unsigned long message_counter = 0;
+
+
 
 void loop() 
 {
-  while(n<=num_tests)
+  while(delta_t>=0)
   {
-    int message = n; // Message to be transmitted
-    unsigned long t_loop = 0;
-    unsigned long t_cycle_init = millis();
-    while(t_loop < T + t_cycle_init)
+    redundant_test_counter = 0;
+    Serial.print("Test number: ");
+    Serial.println(tests_counter+1);
+    Serial.print(", delay: ");
+    Serial.print(delta_t);
+    Serial.println(" microseconds");
+    while(redundant_test_counter < num_of_redundant_tests)
     {
-      t_loop = millis();
-      radio.write(&message, sizeof(message));
-      Serial.print(message);
-      Serial.print(",");
-      //delay(delta_t);
-      delayMicroseconds(delta_t);
+      message_counter = 0;
+      unsigned long t0 = millis();
+      while(message_counter<num_of_messages_per_test)
+      {
+        int message = redundant_test_counter;
+        radio.write(&message, sizeof(message));
+        Serial.print(message);
+        Serial.print(",");
+        message_counter++;
+        delayMicroseconds(delta_t);
+      }
+      redundant_test_counter++;
+      Serial.println();    
     }
-    Serial.println();
-    //delta_t-=5;
-    //if(delta_t == 0)
-    //{
-    //  Serial.print("End of test");
-    //  while(1){}
-    //}
-    n++;
+    delta_t-= 1;
+    tests_counter++;
   }
   while(1){}
 }
