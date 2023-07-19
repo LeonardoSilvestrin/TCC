@@ -744,47 +744,7 @@ void setup()
 }
 //tempo máximo que a central fica no loop principal antes de reinicar tudo
 
-const float mins_to_msec          = 60ul*1000ul;
-unsigned long t_cycle             = .33*mins_to_msec;
-unsigned long t_cycle_start             = 0;
-unsigned long cycle_counter      = 0; 
-void loop() 
-{ 
-  unsigned long t_init = millis();
-  //minha_rede.recover_network_config();
-  // tempo decorrido desde o inicio do loop
-  int num_recieved_messages = 0;
-  for(int i=0;i<20;i++)
-  {
-    mesh.update();
-    mesh.DHCP();
-    num_recieved_messages += listen_to_network();
-    delay(5);
-  }
-  if (num_recieved_messages == 1)
-  {
-    t_cycle_start = millis();
-    cycle_counter++;
-  }
-  if (t_init - t_cycle_start > t_cycle && cycle_counter >0)
-  {
-    ciclo_atual.print_cycle_status();
-    ciclo_atual.new_cycle();
-  }
-  if (minha_rede.get_network_changed())
-  {
-    Serial.print("Network changed: ");
-    Serial.println(minha_rede.get_network_changed());
-    // minha_rede.save_network_config();
-    minha_rede.print_mesh_stattus();
-    minha_rede.set_network_changed(0);
-  }
-  delay(100);
-  //ESP.deepSleep(5e6);
-  //delay(t_cycle-tempo_final_ciclo);
-}
-
-void loop2()
+void loop()
 {
   mesh.update();
   mesh.DHCP();
