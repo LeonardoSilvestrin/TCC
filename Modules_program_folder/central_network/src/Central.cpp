@@ -344,10 +344,73 @@ Network_configuration minha_rede;
 
 
 //==========================================================================================================================================
-
+int TAMANHO_FILA = 254;
+struct DadoSensor {
+  float id;
+  float bateria;
+  float temperatura;
+  float umidade_do_solo;
+};
 class Received_data
 {
-  
+  public:
+    Received_data() : inicioFila(0), fimFila(0) {}
+
+    bool adicionarNaFila(float v1, float v2, float v3, float v4) {
+      int proximoFim = (fimFila + 1) % TAMANHO_FILA;  // Próximo índice no final da fila
+
+      if (proximoFim == inicioFila) {
+        // Fila cheia
+        return false;
+      }
+
+      fila[fimFila].id = v1;
+      fila[fimFila].bateria = v2;
+      fila[fimFila].temperatura = v3;
+      fila[fimFila].umidade_do_solo = v4;
+
+      fimFila = proximoFim;
+      return true;
+    }
+
+    bool removerDaFila() {
+      if (inicioFila == fimFila) {
+        // Fila vazia
+        return false;
+      }
+
+      inicioFila = (inicioFila + 1) % TAMANHO_FILA;
+      return true;
+    }
+    // aqui tem bug
+    bool enviarDadosParaServidor() {
+      while (inicioFila != fimFila) {
+        // Envia os dados fila[inicioFila] para o servidor
+        // Se o envio for bem-sucedido, remova o dado da fila
+        if (enviarDadoParaServidor(fila[inicioFila])) {
+          removerDaFila();
+        } else {
+          // Se não conseguir enviar o dado, saia do loop
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+  private:
+    DadoSensor fila[TAMANHO_FILA];
+    int inicioFila;
+    int fimFila;
+
+    // Simulação do envio de dados para o servidor (substitua pelo código de envio real)
+    bool enviarDadoParaServidor(const DadoSensor& dado) {
+      // Código para enviar o dado para o servidor aqui (substitua por sua implementação real)
+      // Retorne true se o envio for bem-sucedido, ou false caso contrário
+      // Por simplicidade, estamos retornando true aqui
+      return true;
+    }
+  };
 }
 
 // ==========================================Funções de interpretação e tratamento de mensagens============================================
