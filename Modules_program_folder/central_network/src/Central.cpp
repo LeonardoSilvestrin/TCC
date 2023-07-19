@@ -242,7 +242,7 @@ class Network_configuration
       }
       this->num_of_modules++;
       this->ids_in_use[id]=true;
-      Serial.print("unique hardware id computado: ");
+      Serial.print("Unique hardware id computado: ");
       for(int i=0;i<8;i++)
       {
         this->unique_hardware_id_list[8*(id-1)+i] = unique_hardware_id[i];
@@ -356,8 +356,8 @@ class Cycle_status
       {
         this->sensor_sent_data[i]   = 0;
         this->data_sent[3*i]        = 0;
-        this->data_sent[3*i+1]    = 0;
-        this->data_sent[3*i+2]    = 0;
+        this->data_sent[3*i+1]      = 0;
+        this->data_sent[3*i+2]      = 0;
       }
     }
     void data_received(int id, float bateria, float temperatura, float umidade)
@@ -782,4 +782,22 @@ void loop()
   delay(100);
   //ESP.deepSleep(5e6);
   //delay(t_cycle-tempo_final_ciclo);
+}
+
+void loop2()
+{
+  mesh.update();
+  mesh.DHCP();
+  listen_to_network();
+  if received_d_message()
+  {
+    servidor.send(received_message)
+    if (servidor.response() == 0)
+    {
+      mensagens_armazenadas.add(mensagem);
+    }
+    set_received_d_message(0);
+  }
+  listen_to_server();
+  delay(1);
 }

@@ -85,7 +85,7 @@ def print_results(x_values,y_values):
 
 
 
-file = 'test_1v1_avg_pack_loss.csv'
+file = r'/home/leo/Documents/TCC/robustness_tests/data_rate_test/test_1v1_avg_pack_loss.csv'
 fig_name = 'Average Package Loss'
 
 testes_feitos = get_test_data_from_csv(file)
