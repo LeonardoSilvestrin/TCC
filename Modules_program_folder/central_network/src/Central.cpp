@@ -344,79 +344,11 @@ Network_configuration minha_rede;
 
 
 //==========================================================================================================================================
-class Cycle_status
-{
-  private:
-    bool sensor_sent_data[254];
-    float data_sent[254*3];
-  public:
-    Cycle_status()
-    {
-      for(int i =0;i<254;i++)
-      {
-        this->sensor_sent_data[i]   = 0;
-        this->data_sent[3*i]        = 0;
-        this->data_sent[3*i+1]      = 0;
-        this->data_sent[3*i+2]      = 0;
-      }
-    }
-    void data_received(int id, float bateria, float temperatura, float umidade)
-    {
-      this->sensor_sent_data[id-1]  = true;
-      this->data_sent[3*(id-1)]     = bateria;
-      this->data_sent[3*(id-1)+1]   = temperatura;
-      this->data_sent[3*(id-1)+2]   = umidade;
-    }
-    void new_cycle()
-    {
-      for(int i =0;i<254;i++)
-      {
-        this->sensor_sent_data[i] = 0;
-        this->data_sent[3*i]      = 0;
-        this->data_sent[3*i+1]  = 0;
-        this->data_sent[3*i+2]  = 0;
-      }
-    }
-    void print_cycle_status()
-    {
-      bool somedata = 0;
-      for(int i = 0; i<254;i++)
-      {
-        if (sensor_sent_data[i] == true)
-        {
-          float bateria             = data_sent[3*i];
-          float temperatura         = data_sent[3*i+1];
-          float umidade             = data_sent[3*i+2];
-          
-          Serial.print("Sensor de ID: ");
-          Serial.print(i+1);
-          Serial.println(" enviou dados nesse ciclo.");
-          Serial.print("Dados recebidos: ");
-          Serial.print("Bateria: ");
-          Serial.println(bateria);
-          Serial.print("Temperatura: ");
-          Serial.println(temperatura);
-          Serial.print("Umidade: ");
-          Serial.println(umidade);
-          somedata = 1;
-        }
-      }
-      if(!somedata)
-      {
-        Serial.println("Nenhum sensor enviou dados nesse ciclo :C");
-      }
-    }
-    float* get_data()
-    {
-      return this->data_sent;
-    }
-    bool did_sensor_sent_data(int id)
-    {
-      return this->sensor_sent_data[id];
-    }
-};
 
-Cycle_status ciclo_atual;
+class Received_data
+{
+  
+}
 
 // ==========================================Funções de interpretação e tratamento de mensagens============================================
 
@@ -694,18 +626,8 @@ bool listen_to_network()
           return 0;
         case 'd':
           // process_d_message(header, module_list);
-          if (ciclo_atual.did_sensor_sent_data(header.from_node))
-          {
-            Serial.print("O sensor de ID: ");
-            Serial.print(header.from_node);
-            Serial.println(" enviou dados duas vezes neste ciclo, sensor dessincronizado.");
-            return 0;
-          }
-          else
-          {
-            process_d_message(header);
-            return 1;
-          }
+          process_d_message(header);
+          return 1;
         default:
           network.read(header, 0, 0);
           Serial.println("Mensagem de tipo desconhecido");
