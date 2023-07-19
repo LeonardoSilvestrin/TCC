@@ -783,21 +783,3 @@ void loop()
   //ESP.deepSleep(5e6);
   //delay(t_cycle-tempo_final_ciclo);
 }
-
-void loop2()
-{
-  mesh.update();
-  mesh.DHCP();
-  listen_to_network();
-  if received_d_message()
-  {
-    servidor.send(received_message)
-    if (servidor.response() == 0)
-    {
-      mensagens_armazenadas.add(mensagem);
-    }
-    set_received_d_message(0);
-  }
-  listen_to_server();
-  delay(1);
-}
