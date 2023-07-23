@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebSocket Time Display</title>
+  <script>
+    var ws = new WebSocket("ws://" + window.location.hostname + ":81/"); // Connect to WebSocket server on port 81
+
+    ws.onmessage = function (event) {
+      var timeSpan = document.getElementById("timeSpan");
+      timeSpan.innerHTML = event.data + " Seconds"; // Update displayed time
+    };
+  </script>
+</head>
+<body>
+  <h1>Hello, Leo!</h1>
+  <p>Time: <span id="timeSpan"></span></p>
+</body>
+</html>
