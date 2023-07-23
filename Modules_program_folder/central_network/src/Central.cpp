@@ -411,7 +411,6 @@ class Received_data
       return true;
     }
   };
-}
 
 // ==========================================Funções de interpretação e tratamento de mensagens============================================
 
