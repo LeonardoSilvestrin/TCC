@@ -36,7 +36,7 @@ int modulo_inativo =        0;
 //-----------------------------------------Network_configuration minha_rede;----------------------------------------------------------------
 
 //==========================================================================================================================================
-int TAMANHO_FILA = 254;
+const int TAMANHO_FILA = 254;
 struct DadoSensor {
   float id;
   float bateria;
@@ -44,7 +44,11 @@ struct DadoSensor {
   float umidade_do_solo;
 };
 class Received_data
-{
+{  private:
+    DadoSensor fila[TAMANHO_FILA];
+    int inicioFila;
+    int fimFila;
+
   public:
     Received_data() : inicioFila(0), fimFila(0) {}
 
@@ -90,10 +94,6 @@ class Received_data
       return true;
     }
 
-  private:
-    DadoSensor fila[TAMANHO_FILA];
-    int inicioFila;
-    int fimFila;
 
     // Simulação do envio de dados para o servidor (substitua pelo código de envio real)
     bool enviarDadoParaServidor(const DadoSensor& dado) {
@@ -106,9 +106,14 @@ class Received_data
 
 // ==========================================Funções de interpretação e tratamento de mensagens============================================
 
-void interpret_server_message()
+void listen_to_server()
 {
-
+  if (Serial.available() > 0) 
+  {
+    char dados = Serial.read();
+    Serial.print("Message: ");
+    Serial.println(dados);
+  }
 }
 
 bool is_id_valid(int id)
@@ -133,19 +138,6 @@ bool is_header_valid(int header)
   {
     return false;
   }
-}
-
-bool compare_hardware_id_to_record(int sensor_network_id, uint8_t* id_2)
-{
-  uint8_t* registered_uinique_address = minha_rede.get_module_recorded_unique_id(sensor_network_id);
-  for (int i = 0; i<8;i++)
-  {
-    if(!(registered_uinique_address[i] == id_2[i]))
-    {
-      return false;
-    }
-  }
-  return true;
 }
 // ========================================================= CONFIG ('c') MESSAGE ================================================================
 // responde solicitação do tipo 'c' com o novo endereço do módulo (id), retorna 1 se receber o ACK e 0 se não receber.
@@ -172,7 +164,6 @@ bool answer_id_request_and_listen_to_ACK(int id, int message_to)
   else // se o write nao teve sucesso a central não deve computar mudanças na rede
   {
     Serial.println("Sem resposta do Módulo solicitante");
-    minha_rede.print_mesh_stattus();
     return 0;
   }
 }
@@ -189,8 +180,6 @@ bool process_d_message(RF24NetworkHeader header)
     if (network.available()) 
     {
       network.read(header, data_to_receive, sizeof(data_to_receive));
-      float* data = data_to_receive;
-      ciclo_atual.data_received(id_sensor,data[0],data[1],data[2]);
       return 1;
     }
   }
@@ -212,7 +201,7 @@ bool listen_to_network()
   {
     RF24NetworkHeader header;
     network.peek(header); //ler o header da próxima mensagem da fila
-    if(is_id_valid(mesh.getNodeID(header.from_node))&&minha_rede.is_id_in_the_mesh(mesh.getNodeID(header.from_node)))
+    if(is_id_valid(mesh.getNodeID(header.from_node)))
     {
       switch (header.type) 
       {
@@ -263,15 +252,16 @@ void loop()
   mesh.update();
   mesh.DHCP();
   listen_to_network();
-  if received_d_message()
+  /*
+  if (received_d_message())
   {
-    servidor.send(received_message)
     if (servidor.response() == 0)
     {
       mensagens_armazenadas.add(mensagem);
     }
     set_received_d_message(0);
   }
+  */
   listen_to_server();
   delay(1);
 }
