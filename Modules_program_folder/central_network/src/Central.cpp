@@ -34,10 +34,12 @@ bool entrada_novo_modulo =  true;
 bool saida_modulo =         false;
 int modulo_inativo =        0;
 //-----------------------------------------Network_configuration minha_rede;----------------------------------------------------------------
+bool server_online = false;
 
 //==========================================================================================================================================
 const int TAMANHO_FILA = 254;
-struct DadoSensor {
+struct DadoSensor 
+{
   float id;
   float bateria;
   float temperatura;
@@ -52,10 +54,12 @@ class Received_data
   public:
     Received_data() : inicioFila(0), fimFila(0) {}
 
-    bool adicionarNaFila(float v1, float v2, float v3, float v4) {
-      int proximoFim = (fimFila + 1) % TAMANHO_FILA;  // Próximo índice no final da fila
+    bool adicionarNaFila(float v1, float v2, float v3, float v4) 
+    {
+      int proximoFim = fimFila + 1; // % TAMANHO_FILA;  // Próximo índice no final da fila
 
-      if (proximoFim == inicioFila) {
+      if (proximoFim == inicioFila) 
+      {
         // Fila cheia
         return false;
       }
@@ -69,34 +73,56 @@ class Received_data
       return true;
     }
 
-    bool removerDaFila() {
-      if (inicioFila == fimFila) {
+    bool removerDaFila() 
+    {
+      if (inicioFila == fimFila) 
+      {
         // Fila vazia
         return false;
       }
+      fila[inicioFila].id                = 0;
+      fila[inicioFila].bateria           = 0;
+      fila[inicioFila].temperatura       = 0;
+      fila[inicioFila].umidade_do_solo   = 0;
 
-      inicioFila = (inicioFila + 1) % TAMANHO_FILA;
+      inicioFila ++;
       return true;
     }
     // aqui tem bug
-    bool enviarDadosParaServidor() {
-      while (inicioFila != fimFila) {
-        // Envia os dados fila[inicioFila] para o servidor
-        // Se o envio for bem-sucedido, remova o dado da fila
-        if (enviarDadoParaServidor(fila[inicioFila])) {
+    bool enviarDadosArmazenados() 
+    {
+      while (inicioFila != fimFila) 
+      {
+        if (enviarDadoParaServidor(fila[inicioFila])) 
+        {
           removerDaFila();
-        } else {
+        } 
+        else 
+        {
           // Se não conseguir enviar o dado, saia do loop
           return false;
         }
       }
-
       return true;
     }
 
 
     // Simulação do envio de dados para o servidor (substitua pelo código de envio real)
-    bool enviarDadoParaServidor(const DadoSensor& dado) {
+    bool enviarDadoParaServidor(DadoSensor& dado) 
+    {
+      if(server_online)
+      {
+        Serial.println("Dados Enviados para o servidor: ");
+        Serial.print("ID: ");
+        Serial.println(dado.id);
+        Serial.print("Bateria: ");
+        Serial.println(dado.bateria);
+        Serial.print("Temperatura: ");
+        Serial.println(dado.temperatura);
+        Serial.print("Umidade do solo: ");
+        Serial.println(dado.umidade_do_solo);
+        Serial.println("");
+      }
       // Código para enviar o dado para o servidor aqui (substitua por sua implementação real)
       // Retorne true se o envio for bem-sucedido, ou false caso contrário
       // Por simplicidade, estamos retornando true aqui
@@ -104,15 +130,26 @@ class Received_data
     }
   };
 
+Received_data dados_na_fila;
 // ==========================================Funções de interpretação e tratamento de mensagens============================================
 
 void listen_to_server()
 {
   if (Serial.available() > 0) 
   {
-    char dados = Serial.read();
-    Serial.print("Message: ");
-    Serial.println(dados);
+    char data = Serial.read();
+    bool* server_online_ptr = &server_online;
+    
+    if (data == '0')
+    {
+      *server_online_ptr = false;
+      Serial.println("Server set to OFF");
+    }
+    if (data == '1')
+    {
+      *server_online_ptr = true;
+      Serial.println("Server set to ON");
+    }
   }
 }
 
@@ -180,6 +217,8 @@ bool process_d_message(RF24NetworkHeader header)
     if (network.available()) 
     {
       network.read(header, data_to_receive, sizeof(data_to_receive));
+      Serial.println("Dados Recebidos");
+      dados_na_fila.adicionarNaFila(id_sensor, data_to_receive[0],data_to_receive[1],data_to_receive[2]);
       return 1;
     }
   }
@@ -252,16 +291,10 @@ void loop()
   mesh.update();
   mesh.DHCP();
   listen_to_network();
-  /*
-  if (received_d_message())
+  if (server_online)
   {
-    if (servidor.response() == 0)
-    {
-      mensagens_armazenadas.add(mensagem);
-    }
-    set_received_d_message(0);
+    dados_na_fila.enviarDadosArmazenados();
   }
-  */
   listen_to_server();
   delay(1);
 }
