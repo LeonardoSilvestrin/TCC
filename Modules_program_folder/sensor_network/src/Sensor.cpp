@@ -115,8 +115,8 @@ void setup()
   connect_to_mesh(myID);  
 }
 
-const float msec_to_mins = 60UL*1000ul;
-unsigned long t_cycle = .33*msec_to_mins;
+// const float msec_to_mins = 60UL*1000ul;
+unsigned long t_cycle = 5000; // *msec_to_mins;
 
 void loop() 
 { 
@@ -137,7 +137,14 @@ void loop()
       float temperatura = mydht.getTemperature();
       int umidade_do_solo_in = analogRead(A0);
       float umidade_do_solo = map(umidade_do_solo_in,0,1024,0,100);
-
+      if (umidade_do_solo<50)
+      {
+        digitalWrite(LED_pin,HIGH);
+      }
+      else
+      {
+        digitalWrite(LED_pin,LOW);
+      }
       if(send_data(bateria, temperatura, umidade_do_solo))
       {
         sent_data = true;
@@ -145,12 +152,6 @@ void loop()
       }
     }
    unsigned long t_final_coleta_dados = millis();
-   Serial.print("Fim do ciclo, tempo:");
-   Serial.println(t_final_coleta_dados);
-   Serial.print("Central recebeu dados neste ciclo? ");
-   Serial.println(sent_data);
-   Serial.print("Meu ID de rede:");
-   Serial.println(mesh.getNodeID());
    // ------------------------------------------------------------ 
    if(sent_data)
    {
@@ -166,8 +167,8 @@ void loop()
     Serial.print("Erro, meu ID: ");
     Serial.println(mesh.getNodeID());
     Serial.println("Solicitando novo id para a central...");
-    myID = id_update();
-    connect_to_mesh(myID);
+   // myID = id_update();
+   // connect_to_mesh(myID);
     delay(1);
   }
 }
