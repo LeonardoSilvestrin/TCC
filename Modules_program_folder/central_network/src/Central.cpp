@@ -764,28 +764,15 @@ unsigned long t_cycle             = .33*mins_to_msec;
 unsigned long t_cycle_start             = 0;
 unsigned long cycle_counter      = 0; 
 void loop() 
-{ 
-  unsigned long t_init = millis();
-  //minha_rede.recover_network_config();
-  // tempo decorrido desde o inicio do loop
-  int num_recieved_messages = 0;
-  for(int i=0;i<20;i++)
+{  
+  mesh.update();
+  mesh.DHCP();
+  listen_to_network();
+  if(server_online)
   {
-    mesh.update();
-    mesh.DHCP();
-    num_recieved_messages += listen_to_network();
-    delay(5);
+    dados_na_fila.enviarDadosArmazenados();
   }
-  if (num_recieved_messages == 1)
-  {
-    t_cycle_start = millis();
-    cycle_counter++;
-  }
-  if (t_init - t_cycle_start > t_cycle && cycle_counter >0)
-  {
-    ciclo_atual.print_cycle_status();
-    ciclo_atual.new_cycle();
-  }
+  listen_to_server();
   if (minha_rede.get_network_changed())
   {
     Serial.print("Network changed: ");
