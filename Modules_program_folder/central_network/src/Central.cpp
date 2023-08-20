@@ -32,6 +32,106 @@ int denial_id =               0;
 bool entrada_novo_modulo =  true;
 bool saida_modulo =         false;
 int modulo_inativo =        0;
+
+
+//---------------------------------------------< configurando fila de dados para sevidor>----------------------------------------------------------------------------------
+
+const int TAMANHO_FILA = 254;
+struct DadoSensor 
+{
+  float id;
+  float bateria;
+  float temperatura;
+  float umidade_do_solo;
+};
+class Received_data
+{  private:
+    DadoSensor fila[TAMANHO_FILA];
+    int inicioFila;
+    int fimFila;
+
+  public:
+    Received_data() : inicioFila(0), fimFila(0) {}
+
+    bool adicionarNaFila(float v1, float v2, float v3, float v4) 
+    {
+      int proximoFim = fimFila + 1; // % TAMANHO_FILA;  // Próximo índice no final da fila
+
+      if (proximoFim == inicioFila) 
+      {
+        // Fila cheia
+        return false;
+      }
+
+      fila[fimFila].id = v1;
+      fila[fimFila].bateria = v2;
+      fila[fimFila].temperatura = v3;
+      fila[fimFila].umidade_do_solo = v4;
+
+      fimFila = proximoFim;
+      return true;
+    }
+
+    bool removerDaFila() 
+    {
+      if (inicioFila == fimFila) 
+      {
+        // Fila vazia
+        return false;
+      }
+      fila[inicioFila].id                = 0;
+      fila[inicioFila].bateria           = 0;
+      fila[inicioFila].temperatura       = 0;
+      fila[inicioFila].umidade_do_solo   = 0;
+
+      inicioFila ++;
+      return true;
+    }
+    // aqui tem bug
+    bool enviarDadosArmazenados() 
+    {
+      while (inicioFila != fimFila) 
+      {
+        if (enviarDadoParaServidor(fila[inicioFila])) 
+        {
+          removerDaFila();
+        } 
+        else 
+        {
+          // Se não conseguir enviar o dado, saia do loop
+          return false;
+        }
+      }
+      return true;
+    }
+
+
+    // Simulação do envio de dados para o servidor (substitua pelo código de envio real)
+    bool enviarDadoParaServidor(DadoSensor& dado) 
+    {
+      if(server_online)
+      {
+        Serial.println("Dados Enviados para o servidor: ");
+        Serial.print("ID: ");
+        Serial.println(dado.id);
+        Serial.print("Bateria: ");
+        Serial.println(dado.bateria);
+        Serial.print("Temperatura: ");
+        Serial.println(dado.temperatura);
+        Serial.print("Umidade do solo: ");
+        Serial.println(dado.umidade_do_solo);
+        Serial.println("");
+      }
+      // Código para enviar o dado para o servidor aqui (substitua por sua implementação real)
+      // Retorne true se o envio for bem-sucedido, ou false caso contrário
+      // Por simplicidade, estamos retornando true aqui
+      return true;
+    }
+  };
+
+Received_data dados_na_fila;
+//-------------------------------------------------------------------------------------------------------------------------------------------
+
 //-----------------------------------------Network_configuration minha_rede;----------------------------------------------------------------
 
 class Network_configuration
@@ -344,79 +444,6 @@ Network_configuration minha_rede;
 
 
 //==========================================================================================================================================
-class Cycle_status
-{
-  private:
-    bool sensor_sent_data[254];
-    float data_sent[254*3];
-  public:
-    Cycle_status()
-    {
-      for(int i =0;i<254;i++)
-      {
-        this->sensor_sent_data[i]   = 0;
-        this->data_sent[3*i]        = 0;
-        this->data_sent[3*i+1]      = 0;
-        this->data_sent[3*i+2]      = 0;
-      }
-    }
-    void data_received(int id, float bateria, float temperatura, float umidade)
-    {
-      this->sensor_sent_data[id-1]  = true;
-      this->data_sent[3*(id-1)]     = bateria;
-      this->data_sent[3*(id-1)+1]   = temperatura;
-      this->data_sent[3*(id-1)+2]   = umidade;
-    }
-    void new_cycle()
-    {
-      for(int i =0;i<254;i++)
-      {
-        this->sensor_sent_data[i] = 0;
-        this->data_sent[3*i]      = 0;
-        this->data_sent[3*i+1]  = 0;
-        this->data_sent[3*i+2]  = 0;
-      }
-    }
-    void print_cycle_status()
-    {
-      bool somedata = 0;
-      for(int i = 0; i<254;i++)
-      {
-        if (sensor_sent_data[i] == true)
-        {
-          float bateria             = data_sent[3*i];
-          float temperatura         = data_sent[3*i+1];
-          float umidade             = data_sent[3*i+2];
-          
-          Serial.print("Sensor de ID: ");
-          Serial.print(i+1);
-          Serial.println(" enviou dados nesse ciclo.");
-          Serial.print("Dados recebidos: ");
-          Serial.print("Bateria: ");
-          Serial.println(bateria);
-          Serial.print("Temperatura: ");
-          Serial.println(temperatura);
-          Serial.print("Umidade: ");
-          Serial.println(umidade);
-          somedata = 1;
-        }
-      }
-      if(!somedata)
-      {
-        Serial.println("Nenhum sensor enviou dados nesse ciclo :C");
-      }
-    }
-    float* get_data()
-    {
-      return this->data_sent;
-    }
-    bool did_sensor_sent_data(int id)
-    {
-      return this->sensor_sent_data[id];
-    }
-};
-
-Cycle_status ciclo_atual;
 
 // ==========================================Funções de interpretação e tratamento de mensagens============================================
 
@@ -662,7 +689,6 @@ bool process_d_message(RF24NetworkHeader header)
     {
       network.read(header, data_to_receive, sizeof(data_to_receive));
       float* data = data_to_receive;
-      ciclo_atual.data_received(id_sensor,data[0],data[1],data[2]);
       return 1;
     }
   }
@@ -693,19 +719,8 @@ bool listen_to_network()
           process_c_message(header);
           return 0;
         case 'd':
-          // process_d_message(header, module_list);
-          if (ciclo_atual.did_sensor_sent_data(header.from_node))
-          {
-            Serial.print("O sensor de ID: ");
-            Serial.print(header.from_node);
-            Serial.println(" enviou dados duas vezes neste ciclo, sensor dessincronizado.");
-            return 0;
-          }
-          else
-          {
-            process_d_message(header);
-            return 1;
-          }
+          process_d_message(header);
+          return 1;
         default:
           network.read(header, 0, 0);
           Serial.println("Mensagem de tipo desconhecido");
