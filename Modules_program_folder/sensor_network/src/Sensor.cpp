@@ -227,7 +227,14 @@ void loop()
       float temperatura = mydht.getTemperature();
       int umidade_do_solo_in = analogRead(A0);
       float umidade_do_solo = map(umidade_do_solo_in,0,1024,0,100);
-
+      if (umidade_do_solo<50)
+      {
+        digitalWrite(LED_pin,HIGH);
+      }
+      else
+      {
+        digitalWrite(LED_pin,LOW);
+      }
       if(send_data(bateria, temperatura, umidade_do_solo))
       {
         sent_data = true;
