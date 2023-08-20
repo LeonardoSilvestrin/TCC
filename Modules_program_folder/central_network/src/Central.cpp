@@ -28,13 +28,14 @@ RF24Mesh                      mesh(radio, network);
 int new_sensor_id =           baseID;
 int denial_id =               0;
 
-// ------------------------------------esses dois comandos devem vir do servidor --------------------------
+// ---------------------------------------< variáveis globais controladas pelo servidor >------------------------------------------
+
+bool server_online =        false;
 bool entrada_novo_modulo =  true;
 bool saida_modulo =         false;
 int modulo_inativo =        0;
 
-
-//---------------------------------------------< configurando fila de dados para sevidor>----------------------------------------------------------------------------------
+//---------------------------------------------< configurando fila de dados para sevidor >----------------------------------------------------------------------------------
 
 const int TAMANHO_FILA = 254;
 struct DadoSensor 
@@ -130,7 +131,6 @@ class Received_data
   };
 
 Received_data dados_na_fila;
-//-------------------------------------------------------------------------------------------------------------------------------------------
 
 //-----------------------------------------Network_configuration minha_rede;----------------------------------------------------------------
 
@@ -440,17 +440,29 @@ class Network_configuration
 };
 
 Network_configuration minha_rede;
+// ==========================================< Funções para comunicação com o servidor >============================================
 
-
-
-//==========================================================================================================================================
-
-// ==========================================Funções de interpretação e tratamento de mensagens============================================
-
-void interpret_server_message()
+void listen_to_server()
 {
-
+  if (Serial.available() > 0) 
+  {
+    char data = Serial.read();
+    bool* server_online_ptr = &server_online;
+    
+    if (data == '0')
+    {
+      *server_online_ptr = false;
+      Serial.println("Server set to OFF");
+    }
+    if (data == '1')
+    {
+      *server_online_ptr = true;
+      Serial.println("Server set to ON");
+    }
+  }
 }
+
+// ==========================================< Funções para interpretação e tratamento de mensagens >============================================
 
 bool is_id_valid(int id)
 {
@@ -518,12 +530,11 @@ bool answer_id_request_and_listen_to_ACK(int id, int message_to)
   }
 }
 
-// processa mensagem do tipo 'c' -> novo sensor solicitando entrada na rede.
-// retorna 1 se o processo for concluído (sensor solicitante recebeu id e está computado na rede) e 0 caso contrário
-
-// conteudo da mensagem de configuracao: id do hardware
 
 bool process_c_message(RF24NetworkHeader header)
+// processa mensagem do tipo 'c' -> novo sensor solicitando entrada na rede.
+// retorna 1 se o processo for concluído (sensor solicitante recebeu id e está computado na rede) e 0 caso contrário
+// conteudo da mensagem de configuracao: id do hardware
 {
   // --------------------------------------------------------recebimento da mensagem de configuração --------------------------------------------------
   // uniqueID_and_type guarda nas primeiras 8 posições o endereço único do hardware, o último byte é o tipo de sensor (uint8_t)'i' ou (uint8_t)'s'
@@ -535,7 +546,6 @@ bool process_c_message(RF24NetworkHeader header)
   int requester_network_id =    (int)mesh.getNodeID(header.from_node);
   uint8_t* requester_hardware_id = uniqueID_and_type;
   char sensor_type = (char)requester_hardware_id[8];
-  
   //--------------------------prints-------------------------
   Serial.println("Solicitação de configuração recebida.");
   Serial.print("ID Hardware: ");
@@ -685,6 +695,7 @@ bool process_d_message(RF24NetworkHeader header)
   float data_to_receive[3];
   if(id_sensor >0 && id_sensor < 255)
   {
+    Serial.print("penis");
     if (network.available()) 
     {
       network.read(header, data_to_receive, sizeof(data_to_receive));
@@ -781,7 +792,6 @@ void loop()
     minha_rede.print_mesh_stattus();
     minha_rede.set_network_changed(0);
   }
-  delay(100);
   //ESP.deepSleep(5e6);
   //delay(t_cycle-tempo_final_ciclo);
 }
