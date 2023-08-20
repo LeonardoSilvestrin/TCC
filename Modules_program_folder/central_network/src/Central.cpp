@@ -695,11 +695,11 @@ bool process_d_message(RF24NetworkHeader header)
   float data_to_receive[3];
   if(id_sensor >0 && id_sensor < 255)
   {
-    Serial.print("penis");
     if (network.available()) 
     {
       network.read(header, data_to_receive, sizeof(data_to_receive));
-      float* data = data_to_receive;
+      Serial.println("Dados recebidos");
+      dados_na_fila.adicionarNaFila(id_sensor, data_to_receive[0],data_to_receive[1],data_to_receive[2]);
       return 1;
     }
   }
