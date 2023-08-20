@@ -160,10 +160,11 @@ void setup()
   radio.setRetries(5, 5); // seta o padrão de 5 retries no envio de mensagem com 1500us (5*250 + 250) de intervalo entre elas
   radio.setChannel(125); //seta o canal 125 para operação => 2,525 GHz (2,4 + 0,125) 
   
-  //---------------------------------------------------------------
+  //--------------------------< Extraindo ID registrado na EEPROM >-------------------------------------
   // Inicia a EEPROM e lẽ o último ID registrado
-  EEPROM.begin();
-  myOldID = EEPROM_get_id();
+  // EEPROM.begin();
+  // myOldID = EEPROM_get_id();
+  myOldID = 255;
   //---------------------------------------------------------------
   // Printa o último ID de rede do módulo bem como o número de série
 
@@ -190,8 +191,6 @@ void setup()
     Serial.println("Solicitando novo id para a central...");
     myID = id_update();
     delay(1);
-    Serial.print(">>>");
-    Serial.println(myID);
     connect_to_mesh(myID);
   }
   // se a central responder a solicitação de id com 0 o sensor fica em loop infinito.
