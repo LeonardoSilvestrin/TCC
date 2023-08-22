@@ -21,7 +21,7 @@
   #endif
 #endif
 
-#define tipo 's'
+#define tipo 'i'
 #define baseID 255
 #define uC_serial  9600 // velocidade de comunicação do micro via porta serial
 #define dht_pin 2 //D2
