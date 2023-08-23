@@ -1,8 +1,6 @@
 //Include Libraries
 #include <Arduino.h>
-
 #include <EEPROM.h>
-
 #include <SPI.h>
 #include <RF24.h>
 #include <RF24Network.h>
@@ -162,7 +160,7 @@ class Network_configuration
       }
     }
     
-    void save_num_of_modules()
+    void save_num_of_modules())
     {
       EEPROM.write(EEPROM_index_num_of_modules, (uint8_t)num_of_modules);    
       EEPROM.commit();
@@ -774,6 +772,7 @@ const float mins_to_msec          = 60ul*1000ul;
 unsigned long t_cycle             = .33*mins_to_msec;
 unsigned long t_cycle_start             = 0;
 unsigned long cycle_counter      = 0; 
+
 void loop() 
 {  
   mesh.update();
