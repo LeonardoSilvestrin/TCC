@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <EEPROM.h>
-#include <DHT.h>
 #include <SPI.h>
 #include <RF24.h>
 #include <RF24Network.h>
@@ -24,7 +23,7 @@
 #define tipo 'i'
 #define baseID 255
 #define uC_serial  9600 // velocidade de comunicação do micro via porta serial
-#define dht_pin 2 //D2
+#define IRR_pin 2 //D2
 #define LED_pin 3 //D3
 
 RF24 radio(CE, CSN); // CE, CSN
@@ -34,9 +33,8 @@ RF24Mesh mesh(radio,network);
 int CentralID = 0;
 int myID = baseID;
 int myOldID = baseID;
-char myType = 's';
-
-DHT mydht;
+char myType = tipo;
+bool estado_atual;
 
 int id_update()
 {
@@ -140,6 +138,34 @@ int EEPROM_get_id()
   return (int)id;
 }
 
+bool estado_irrgacao()
+{
+    mesh.update();
+    if (network.available()) 
+    {
+      RF24NetworkHeader header;
+      bool mudar_estado;
+      network.read(header, &mudar_estado, sizeof(mudar_estado));
+      if (mudar_estado == true)
+      {
+        bool* p_estado_atual = &estado_atual;
+        *p_estado_atual = !*p_estado_atual;
+        Serial.print("Irrigação");
+        if (estado_atual == true)
+        {
+          Serial.println(" ligada");
+        }
+        else
+        {
+          Serial.println(" desligada"); 
+        }
+      }
+      return estado_atual;
+    }
+}
+
+
+
 void setup() 
 {
   //---------------------------------------------------------------
@@ -149,10 +175,9 @@ void setup()
   
   //---------------------------------------------------------------
   // Inicia o sensor de umidade do ar e temperatura dht11
-  pinMode(dht_pin, INPUT);
+  pinMode(IRR_pin, OUTPUT);
   pinMode(LED_pin, OUTPUT);
-  mydht.setup(dht_pin); 
-  
+
   //---------------------------------------------------------------
   // Setup do radio
   radio.begin();
@@ -190,7 +215,7 @@ void setup()
   {
     Serial.println("Solicitando novo id para a central...");
     myID = id_update();
-    delay(1);
+   // delay(1);
     connect_to_mesh(myID);
   }
   // se a central responder a solicitação de id com 0 o sensor fica em loop infinito.
@@ -214,49 +239,14 @@ void loop()
   myID = mesh._nodeID;
   if(myID != baseID)
   {
-    // ------------------------------------------------------------
-    // data loop
-    unsigned long t_inicial_coleta_dados = millis();
-    unsigned long t_max_para_enviar_dados = 5000;
-    while(millis()-t_inicial_coleta_dados<t_max_para_enviar_dados)
+    if (estado_atual == true)
     {
-      // float bateria = 19;
-      // float temperatura = 2.5+cc;
-      // float umidade_do_solo = 70;
-      float bateria = 100;
-      float temperatura = mydht.getTemperature();
-      int umidade_do_solo_in = analogRead(A0);
-      float umidade_do_solo = map(umidade_do_solo_in,0,1024,0,100);
-      if (umidade_do_solo<50)
-      {
-        digitalWrite(LED_pin,HIGH);
-      }
-      else
-      {
-        digitalWrite(LED_pin,LOW);
-      }
-      if(send_data(bateria, temperatura, umidade_do_solo))
-      {
-        sent_data = true;
-        break;
-      }
+      digitalWrite(IRR_pin,HIGH);
     }
-   unsigned long t_final_coleta_dados = millis();
-   Serial.print("Fim do ciclo, tempo:");
-   Serial.println(t_final_coleta_dados);
-   Serial.print("Central recebeu dados neste ciclo? ");
-   Serial.println(sent_data);
-   Serial.print("Meu ID de rede:");
-   Serial.println(mesh.getNodeID());
-   // ------------------------------------------------------------ 
-   if(sent_data)
-   {
-    delay(t_cycle - (t_final_coleta_dados-t_inicial_coleta_dados));
-   }
-   else
-   {
-    delay(100);
-   }
+    else
+    {
+      digitalWrite(IRR_pin,LOW);
+    }
   }
   else
   {
