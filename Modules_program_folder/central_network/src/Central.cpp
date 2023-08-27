@@ -28,10 +28,11 @@ int denial_id =               0;
 
 // ---------------------------------------< variáveis globais controladas pelo servidor >------------------------------------------
 
-bool server_online =        false;
+char server_online[3] =     "00";
 bool entrada_novo_modulo =  true;
 bool saida_modulo =         false;
 int modulo_inativo =        0;
+bool prev_irr_status = 0;
 
 //---------------------------------------------< configurando fila de dados para sevidor >----------------------------------------------------------------------------------
 
@@ -160,7 +161,7 @@ class Network_configuration
       }
     }
     
-    void save_num_of_modules())
+    void save_num_of_modules()
     {
       EEPROM.write(EEPROM_index_num_of_modules, (uint8_t)num_of_modules);    
       EEPROM.commit();
@@ -444,21 +445,38 @@ void listen_to_server()
 {
   if (Serial.available() > 0) 
   {
-    char data = Serial.read();
-    bool* server_online_ptr = &server_online;
-    
-    if (data == '0')
+    char data[2];
+    Serial.readBytes(data, 2); // Read 2 bytes from Serial
+
+    char* server_online_ptr = &server_online[0];
+    *server_online_ptr = data[0];
+    *(server_online_ptr+1) = data[1];
+    Serial.print(*server_online_ptr);
+
+    Serial.print(*(server_online_ptr+1));
+    if (strcmp(data, "00") == 0)
+    {
+      Serial.println("Server OFF");
+    }
+    else if (strcmp(data, "10") == 0)
     {
       *server_online_ptr = false;
-      Serial.println("Server set to OFF");
+      Serial.println("Server OFF");
     }
-    if (data == '1')
+    else if (strcmp(data, "01") == 0)
     {
-      *server_online_ptr = true;
-      Serial.println("Server set to ON");
+      *server_online_ptr = false;
+      Serial.println("Irrigação desligada");
+    }
+    else if (strcmp(data, "11") == 0)
+    {
+      *server_online_ptr = false;
+      Serial.println("Irrigação ligada");
     }
   }
 }
+
+
 
 // ==========================================< Funções para interpretação e tratamento de mensagens >============================================
 
@@ -742,6 +760,31 @@ bool listen_to_network()
   }
   return 0;
 }
+bool change_irrigation_status(int id_irrigador)
+{
+  bool status_to_send = true;
+  if(mesh.write(&status_to_send,'c',sizeof(status_to_send),id_irrigador))
+  {
+    //================== print ========================
+    if(prev_irr_status == 1)
+    {
+      Serial.print("Irrigacao offline");
+      prev_irr_status = 0;
+      return 0;
+    }
+    else
+    {
+      Serial.print("Irrigacao online");
+      prev_irr_status = 1;
+      return 1;
+    }
+  }
+  else // se o write nao teve sucesso a central não deve computar mudanças na rede
+  {
+    Serial.println("SSem resposta do módulo de irrigação");
+    return 0;
+  }
+}
 
 
 void setup() 
@@ -772,17 +815,34 @@ const float mins_to_msec          = 60ul*1000ul;
 unsigned long t_cycle             = .33*mins_to_msec;
 unsigned long t_cycle_start             = 0;
 unsigned long cycle_counter      = 0; 
-
+int irr_id = 1;
 void loop() 
 {  
   mesh.update();
   mesh.DHCP();
-  listen_to_network();
-  if(server_online)
+  listen_to_server();
+
+if (strcmp(server_online, "01") == 0 || strcmp(server_online, "11") == 0)
   {
     dados_na_fila.enviarDadosArmazenados();
+    if (server_online[1] == '1')
+    {
+      if (prev_irr_status == 0)
+      {
+          change_irrigation_status(irr_id);
+          prev_irr_status = 1;
+      }
+    }
+    if (server_online[1] == '0')
+    {
+      if (prev_irr_status == 1)
+      {
+          change_irrigation_status(irr_id);
+          prev_irr_status = 0;
+      }
+    }
   }
-  listen_to_server();
+  listen_to_network();
   if (minha_rede.get_network_changed())
   {
     Serial.print("Network changed: ");

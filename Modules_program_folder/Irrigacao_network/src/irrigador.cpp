@@ -239,13 +239,16 @@ void loop()
   myID = mesh._nodeID;
   if(myID != baseID)
   {
+    estado_irrgacao();
     if (estado_atual == true)
     {
       digitalWrite(IRR_pin,HIGH);
+      digitalWrite(LED_pin,HIGH);
     }
     else
     {
       digitalWrite(IRR_pin,LOW);
+      digitalWrite(LED_pin,LOW);
     }
   }
   else
