@@ -206,7 +206,7 @@ void setup()
 }
 
 const float msec_to_mins = 60UL*1000ul;
-unsigned long t_cycle = .33*msec_to_mins;
+unsigned long t_cycle = 10000; //.33*msec_to_mins;
 
 void loop() 
 { 

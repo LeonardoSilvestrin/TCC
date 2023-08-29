@@ -33,7 +33,10 @@ bool entrada_novo_modulo =  true;
 bool saida_modulo =         false;
 int modulo_inativo =        0;
 bool prev_irr_status = 0;
+bool* prev_irr_status_ptr = &prev_irr_status;
 
+float umidade_do_solo = 0;
+float *umidade_do_solo_ptr = &umidade_do_solo;
 //---------------------------------------------< configurando fila de dados para sevidor >----------------------------------------------------------------------------------
 
 const int TAMANHO_FILA = 254;
@@ -68,6 +71,7 @@ class Received_data
       fila[fimFila].temperatura = v3;
       fila[fimFila].umidade_do_solo = v4;
 
+      *umidade_do_solo_ptr = v4;
       fimFila = proximoFim;
       return true;
     }
@@ -440,42 +444,62 @@ class Network_configuration
 
 Network_configuration minha_rede;
 // ==========================================< Funções para comunicação com o servidor >============================================
+String inputData = ""; // Used to store the received characters
 
 void listen_to_server()
 {
-  if (Serial.available() > 0) 
+  if (Serial.available())
   {
-    char data[2];
-    Serial.readBytes(data, 2); // Read 2 bytes from Serial
+    char c = Serial.read();
+    
+    if (c == '\r') // Check if Enter key is pressed
+    {
+      // Process the received data
+      inputData.trim();
+      if (inputData.length() == 2)
+      {
+        char data[2];
+        data[0] = inputData[0];
+        data[1] = inputData[1];
 
-    char* server_online_ptr = &server_online[0];
-    *server_online_ptr = data[0];
-    *(server_online_ptr+1) = data[1];
-    Serial.print(*server_online_ptr);
+        Serial.print(data[0]);
+        Serial.print(data[1]);
 
-    Serial.print(*(server_online_ptr+1));
-    if (strcmp(data, "00") == 0)
-    {
-      Serial.println("Server OFF");
+        char* server_online_ptr = &server_online[0];
+        *server_online_ptr = data[0];
+        *(server_online_ptr + 1) = data[1];
+
+        if (data[0] == '0' && data[1] == '0')
+        {
+          *server_online_ptr = false;
+          Serial.println("Server OFF");
+        }
+        else if (data[0] == '1' && data[1] == '0')
+        {
+          *server_online_ptr = false;
+          Serial.println("Server OFF");
+        }
+        else if (data[0] == '0' && data[1] == '1')
+        {
+          Serial.println("Irrigação desligada");
+        }
+        else if (data[0] == '1' && data[1] == '1')
+        {
+          Serial.println("Irrigação ligada");
+        }
+
+        Serial.flush();
+      }
+      
+      // Reset the input data for the next input
+      inputData = "";
     }
-    else if (strcmp(data, "10") == 0)
+    else
     {
-      *server_online_ptr = false;
-      Serial.println("Server OFF");
-    }
-    else if (strcmp(data, "01") == 0)
-    {
-      *server_online_ptr = false;
-      Serial.println("Irrigação desligada");
-    }
-    else if (strcmp(data, "11") == 0)
-    {
-      *server_online_ptr = false;
-      Serial.println("Irrigação ligada");
+      inputData += c;
     }
   }
 }
-
 
 
 // ==========================================< Funções para interpretação e tratamento de mensagens >============================================
@@ -763,25 +787,26 @@ bool listen_to_network()
 bool change_irrigation_status(int id_irrigador)
 {
   bool status_to_send = true;
-  if(mesh.write(&status_to_send,'c',sizeof(status_to_send),id_irrigador))
+  if(mesh.write(&status_to_send,'d',sizeof(status_to_send),id_irrigador))
   {
+    Serial.println(prev_irr_status);
     //================== print ========================
     if(prev_irr_status == 1)
     {
-      Serial.print("Irrigacao offline");
-      prev_irr_status = 0;
-      return 0;
+      Serial.print("Irrigação offline");
+      *prev_irr_status_ptr = 0;
+      return 1;
     }
     else
     {
-      Serial.print("Irrigacao online");
-      prev_irr_status = 1;
+      Serial.print("Irrigação online");
+      *prev_irr_status_ptr = 1;
       return 1;
     }
   }
   else // se o write nao teve sucesso a central não deve computar mudanças na rede
   {
-    Serial.println("SSem resposta do módulo de irrigação");
+    Serial.println("Sem resposta do módulo de irrigação");
     return 0;
   }
 }
@@ -821,28 +846,26 @@ void loop()
   mesh.update();
   mesh.DHCP();
   listen_to_server();
-
-if (strcmp(server_online, "01") == 0 || strcmp(server_online, "11") == 0)
+  if (strcmp(server_online, "01") == 0 || strcmp(server_online, "11") == 0)
   {
     dados_na_fila.enviarDadosArmazenados();
-    if (server_online[1] == '1')
+    if (server_online[0] == '1' && prev_irr_status == 0)
     {
-      if (prev_irr_status == 0)
-      {
           change_irrigation_status(irr_id);
-          prev_irr_status = 1;
-      }
     }
-    if (server_online[1] == '0')
+    if (server_online[0] == '0' && prev_irr_status == 1)
     {
-      if (prev_irr_status == 1)
-      {
           change_irrigation_status(irr_id);
-          prev_irr_status = 0;
-      }
     }
   }
   listen_to_network();
+/*
+  if (umidade_do_solo < 50 && prev_irr_status == 0)
+  {
+      change_irrigation_status(irr_id);
+  }
+
+*/
   if (minha_rede.get_network_changed())
   {
     Serial.print("Network changed: ");
