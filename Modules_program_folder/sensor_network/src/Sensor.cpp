@@ -82,11 +82,28 @@ bool send_data(float bateria, float temperatura, float umidade_do_solo)
   {
     if(mesh.write(&message,'d',sizeof(message)))
     {
-      Serial.println("Dados enviados:");
-      Serial.println(*message);
-      Serial.println(*(message+1));
-      Serial.println(*(message+2));
-      return 1;
+      unsigned long t1 = millis();
+      while(millis()-t1<1000)
+      {
+        mesh.update();
+        Serial.println(network.available());
+        if (network.available())
+        {
+          RF24NetworkHeader header;
+          bool resposta_da_central = false;
+          network.read(header, &resposta_da_central, sizeof(resposta_da_central));
+          if (!resposta_da_central)
+          {
+            Serial.print("A CENTRAL NÃO RECEBEU OS DADOS");
+            return 0;
+          }
+        }
+        Serial.println("Dados enviados:");
+        Serial.println(*message);
+        Serial.println(*(message+1));
+        Serial.println(*(message+2));
+        return 1;
+      }
     }
     delay(1);
   }

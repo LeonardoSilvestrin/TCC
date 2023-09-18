@@ -462,9 +462,6 @@ void listen_to_server()
         data[0] = inputData[0];
         data[1] = inputData[1];
 
-        Serial.print(data[0]);
-        Serial.print(data[1]);
-
         char* server_online_ptr = &server_online[0];
         *server_online_ptr = data[0];
         *(server_online_ptr + 1) = data[1];
@@ -733,7 +730,13 @@ bool process_d_message(RF24NetworkHeader header)
 {
   int id_sensor = mesh.getNodeID(header.from_node);
   float data_to_receive[3];
-  if(id_sensor >0 && id_sensor < 255)
+  Serial.print("id recebido: ");
+  Serial.println(id_sensor);
+  minha_rede.print_mesh_stattus();
+  Serial.print("id na rede?");
+  Serial.println(minha_rede.is_id_in_the_mesh(id_sensor));
+  
+  if(id_sensor >0 && id_sensor < 255 && minha_rede.is_id_in_the_mesh(id_sensor))
   {
     if (network.available()) 
     {
@@ -754,6 +757,17 @@ bool process_d_message(RF24NetworkHeader header)
   return 0;
 }
 
+void message_discard(RF24NetworkHeader header)
+{
+    network.read(header,0,0);
+    {
+      int aux_msg = 0;
+      int id_sensor = mesh.getNodeID(header.from_node);
+      mesh.write(&aux_msg,'a',id_sensor,sizeof(int));
+      Serial.print("Mensagem de dados vinda de header inválido, ID: ");
+      Serial.println(id_sensor);
+    }
+}
 // ===============================================================================================================================================
 bool listen_to_network()
 {
@@ -780,6 +794,10 @@ bool listen_to_network()
           break;
       }
       return 0;
+    }
+    else
+    {
+      message_discard(header);
     }
   }
   return 0;
