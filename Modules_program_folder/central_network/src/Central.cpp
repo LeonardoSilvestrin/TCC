@@ -730,11 +730,13 @@ bool process_d_message(RF24NetworkHeader header)
 {
   int id_sensor = mesh.getNodeID(header.from_node);
   float data_to_receive[3];
+  /*
   Serial.print("id recebido: ");
   Serial.println(id_sensor);
   minha_rede.print_mesh_stattus();
   Serial.print("id na rede?");
   Serial.println(minha_rede.is_id_in_the_mesh(id_sensor));
+  */
   
   if(id_sensor >0 && id_sensor < 255 && minha_rede.is_id_in_the_mesh(id_sensor))
   {
