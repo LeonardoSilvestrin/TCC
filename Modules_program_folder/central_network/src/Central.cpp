@@ -7,6 +7,8 @@
 #include <RF24.h>
 #include <RF24Network.h>
 #include <RF24Mesh.h>
+#include <ESP8266WiFi.h>
+#include <PubSubClient.h>
 
 #if defined(ARDUINO_ARCH_ESP8266)   // configuração para ESP8266
   #define CE 0
@@ -30,10 +32,95 @@ int denial_id =               0;
 
 // ---------------------------------------< variáveis globais controladas pelo servidor >------------------------------------------
 
-bool server_online =        false;
+char server_online[3] =     "00";
 bool entrada_novo_modulo =  true;
 bool saida_modulo =         false;
 int modulo_inativo =        0;
+bool prev_irr_status = 0;
+bool* prev_irr_status_ptr = &prev_irr_status;
+
+float umidade_do_solo = 0;
+float *umidade_do_solo_ptr = &umidade_do_solo;
+
+/* ==========================================< WIFI CONFIG >============================================
+*/
+const char *ssid = "Xaiomi 12 Lite"; // Enter your WiFi name
+const char *password = "Hend3011";  // Enter WiFi password// MQTT Broker
+const char *mqtt_broker = "test.mosquitto.org"; // Enter your WiFi or Ethernet IP
+const char *topic = "leo";
+const int mqtt_port = 1883;
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+void callback(char *topic, byte *payload, unsigned int length) 
+{
+ Serial.print("Message arrived in topic: ");
+ Serial.println(topic);
+ Serial.print("Message:");
+ 
+ for (int i = 0; i < length; i++) {
+  Serial.print((char) payload[i]);
+ }
+ 
+ Serial.println();
+ Serial.println(" - - - - - - - - - - - -");
+}
+
+
+// ==========================================< Funções para comunicação com o servidor >============================================
+String inputData = ""; // Used to store the received characters
+void listen_to_server()
+{
+  
+  if (Serial.available())
+  {
+    char c = Serial.read();
+    
+    if (c == '\r') // Check if Enter key is pressed
+    {
+      // Process the received data
+      inputData.trim();
+      if (inputData.length() == 2)
+      {
+        char data[2];
+        data[0] = inputData[0];
+        data[1] = inputData[1];
+
+        char* server_online_ptr = &server_online[0];
+        *server_online_ptr = data[0];
+        *(server_online_ptr + 1) = data[1];
+
+        if (data[0] == '0' && data[1] == '0')
+        {
+          *server_online_ptr = false;
+          Serial.println("Server OFF");
+        }
+        else if (data[0] == '1' && data[1] == '0')
+        {
+          *server_online_ptr = false;
+          Serial.println("Server OFF");
+        }
+        else if (data[0] == '0' && data[1] == '1')
+        {
+          Serial.println("Irrigação desligada");
+        }
+        else if (data[0] == '1' && data[1] == '1')
+        {
+          Serial.println("Irrigação ligada");
+        }
+
+        Serial.flush();
+      }
+      
+      // Reset the input data for the next input
+      inputData = "";
+    }
+    else
+    {
+      inputData += c;
+    }
+  }
+}
 
 //---------------------------------------------< configurando fila de dados para sevidor >----------------------------------------------------------------------------------
 
@@ -112,6 +199,9 @@ class Received_data
     {
       if(server_online)
       {
+        String data  = String(dado.id) + ","+ String(dado.bateria) + ","+ String(dado.temperatura) + "," + String(dado.umidade_do_solo);
+        client.publish("leo",data.c_str());
+
         Serial.println("Dados Enviados para o servidor: ");
         Serial.print("ID: ");
         Serial.println(dado.id);
@@ -440,27 +530,6 @@ class Network_configuration
 };
 
 Network_configuration minha_rede;
-// ==========================================< Funções para comunicação com o servidor >============================================
-
-void listen_to_server()
-{
-  if (Serial.available() > 0) 
-  {
-    char data = Serial.read();
-    bool* server_online_ptr = &server_online;
-    
-    if (data == '0')
-    {
-      *server_online_ptr = false;
-      Serial.println("Server set to OFF");
-    }
-    if (data == '1')
-    {
-      *server_online_ptr = true;
-      Serial.println("Server set to ON");
-    }
-  }
-}
 
 // ==========================================< Funções para interpretação e tratamento de mensagens >============================================
 
@@ -714,6 +783,17 @@ bool process_d_message(RF24NetworkHeader header)
   return 0;
 }
 
+void message_discard(RF24NetworkHeader header)
+{
+    network.read(header,0,0);
+    {
+      int aux_msg = 0;
+      int id_sensor = mesh.getNodeID(header.from_node);
+      mesh.write(&aux_msg,'a',id_sensor,sizeof(int));
+      Serial.print("Mensagem de dados vinda de header inválido, ID: ");
+      Serial.println(id_sensor);
+    }
+}
 // ===============================================================================================================================================
 bool listen_to_network()
 {
@@ -741,10 +821,39 @@ bool listen_to_network()
       }
       return 0;
     }
+    else
+    {
+      message_discard(header);
+    }
   }
   return 0;
 }
-
+bool change_irrigation_status(int id_irrigador)
+{
+  bool status_to_send = true;
+  if(mesh.write(&status_to_send,'d',sizeof(status_to_send),id_irrigador))
+  {
+    Serial.println(prev_irr_status);
+    //================== print ========================
+    if(prev_irr_status == 1)
+    {
+      Serial.print("Irrigação offline");
+      *prev_irr_status_ptr = 0;
+      return 1;
+    }
+    else
+    {
+      Serial.print("Irrigação online");
+      *prev_irr_status_ptr = 1;
+      return 1;
+    }
+  }
+  else // se o write nao teve sucesso a central não deve computar mudanças na rede
+  {
+    Serial.println("Sem resposta do módulo de irrigação");
+    return 0;
+  }
+}
 
 void setup() 
 {
@@ -766,24 +875,71 @@ void setup()
     // if mesh.begin() returns false for a master node, then radio.begin() returned false.
     Serial.println(F("Hardware offline."));
   }
+  // connecting to a WiFi network
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) 
+  {
+    delay(500);
+    Serial.println("Connecting to WiFi..");
+  }
+  
+  Serial.println("Connected to the WiFi network");
+  
+  //connecting to a mqtt broker
+  client.setServer(mqtt_broker, mqtt_port);
+  client.setCallback(callback);
+  
+  while (!client.connected()) 
+  {
+  String client_id = "esp8266-client-";
+  client_id += String(WiFi.macAddress());
+  
+  Serial.printf("The client %s connects to mosquitto mqtt broker\n", client_id.c_str());
+  
+  if (client.connect(client_id.c_str())) 
+  {
+    Serial.println("Public emqx mqtt broker connected");
+  } 
+  else 
+  {
+    Serial.print("failed with state ");
+    Serial.print(client.state());
+    delay(2000);
+  }
+}
+ 
+ // publish and subscribe
+ client.publish(topic, "Central Online");
 
 }
 //tempo máximo que a central fica no loop principal antes de reinicar tudo
-
-const float mins_to_msec          = 60ul*1000ul;
-unsigned long t_cycle             = .33*mins_to_msec;
-unsigned long t_cycle_start             = 0;
-unsigned long cycle_counter      = 0; 
-void loop() 
+int irr_id = 1;
+void loop()
 {  
   mesh.update();
   mesh.DHCP();
-  listen_to_network();
-  if(server_online)
+  listen_to_server();
+  client.loop();
+  if (strcmp(server_online, "01") == 0 || strcmp(server_online, "11") == 0)
   {
     dados_na_fila.enviarDadosArmazenados();
+    if (server_online[0] == '1' && prev_irr_status == 0)
+    {
+          change_irrigation_status(irr_id);
+    }
+    if (server_online[0] == '0' && prev_irr_status == 1)
+    {
+          change_irrigation_status(irr_id);
+    }
   }
-  listen_to_server();
+  listen_to_network();
+/*
+  if (umidade_do_solo < 50 && prev_irr_status == 0)
+  {
+      change_irrigation_status(irr_id);
+  }
+
+*/
   if (minha_rede.get_network_changed())
   {
     Serial.print("Network changed: ");
