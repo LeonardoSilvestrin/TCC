@@ -1,3 +1,7 @@
+/*
+  mosquitto_sub -h test.mosquitto.org -t "leo"
+*/
+
 //Include Libraries
 #include <Arduino.h>
 #include <EEPROM.h>
@@ -889,6 +893,7 @@ void setup()
     delay(500);
     Serial.println("Connecting to WiFi..");
     yield();
+    ESP.wdtFeed();
   }
   
   Serial.println("Connected to the WiFi network");
