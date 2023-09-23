@@ -1,0 +1,68 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
+{
+    "configurations": [
+        {
+            "name": "PlatformIO",
+            "includePath": [
+                "/home/leo/Documents/TCC/Modules_program_folder/Irrigacao_network/include",
+                "/home/leo/Documents/TCC/Modules_program_folder/Irrigacao_network/src",
+                "/home/leo/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                "/home/leo/Documents/TCC/Modules_program_folder/Irrigacao_network/.pio/libdeps/nano_iggigador/ArduinoUniqueID/src",
+                "/home/leo/Documents/TCC/Modules_program_folder/Irrigacao_network/.pio/libdeps/nano_iggigador/DHT",
+                "/home/leo/Documents/TCC/Modules_program_folder/Irrigacao_network/.pio/libdeps/nano_iggigador/RF24Mesh",
+                "/home/leo/Documents/TCC/Modules_program_folder/Irrigacao_network/.pio/libdeps/nano_iggigador/RF24Network",
+                "/home/leo/Documents/TCC/Modules_program_folder/Irrigacao_network/.pio/libdeps/nano_iggigador/RF24",
+                "/home/leo/Documents/TCC/Modules_program_folder/Irrigacao_network/.pio/libdeps/nano_iggigador/RF24/utility",
+                "/home/leo/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                "/home/leo/.platformio/packages/framework-arduino-avr/cores/arduino",
+                "/home/leo/.platformio/packages/framework-arduino-avr/variants/eightanaloginputs",
+                "/home/leo/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                "/home/leo/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                "/home/leo/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+                ""
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "/home/leo/Documents/TCC/Modules_program_folder/Irrigacao_network/include",
+                    "/home/leo/Documents/TCC/Modules_program_folder/Irrigacao_network/src",
+                    "/home/leo/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                    "/home/leo/Documents/TCC/Modules_program_folder/Irrigacao_network/.pio/libdeps/nano_iggigador/ArduinoUniqueID/src",
+                    "/home/leo/Documents/TCC/Modules_program_folder/Irrigacao_network/.pio/libdeps/nano_iggigador/DHT",
+                    "/home/leo/Documents/TCC/Modules_program_folder/Irrigacao_network/.pio/libdeps/nano_iggigador/RF24Mesh",
+                    "/home/leo/Documents/TCC/Modules_program_folder/Irrigacao_network/.pio/libdeps/nano_iggigador/RF24Network",
+                    "/home/leo/Documents/TCC/Modules_program_folder/Irrigacao_network/.pio/libdeps/nano_iggigador/RF24",
+                    "/home/leo/Documents/TCC/Modules_program_folder/Irrigacao_network/.pio/libdeps/nano_iggigador/RF24/utility",
+                    "/home/leo/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                    "/home/leo/.platformio/packages/framework-arduino-avr/cores/arduino",
+                    "/home/leo/.platformio/packages/framework-arduino-avr/variants/eightanaloginputs",
+                    "/home/leo/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                    "/home/leo/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                    "/home/leo/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+                    ""
+                ]
+            },
+            "defines": [
+                "PLATFORMIO=60111",
+                "ARDUINO_AVR_NANO",
+                "F_CPU=16000000L",
+                "ARDUINO_ARCH_AVR",
+                "ARDUINO=10808",
+                "__AVR_ATmega328P__",
+                ""
+            ],
+            "cStandard": "gnu11",
+            "cppStandard": "gnu++11",
+            "compilerPath": "/home/leo/.platformio/packages/toolchain-atmelavr/bin/avr-gcc",
+            "compilerArgs": [
+                "-mmcu=atmega328p",
+                ""
+            ]
+        }
+    ],
+    "version": 4
+}
