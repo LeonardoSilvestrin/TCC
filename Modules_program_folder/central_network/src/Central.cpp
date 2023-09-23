@@ -7,6 +7,7 @@
 #include <RF24.h>
 #include <RF24Network.h>
 #include <RF24Mesh.h>
+#include <PubSubClient.h>
 
 #if defined(ARDUINO_ARCH_ESP8266)   // configuração para ESP8266
   #define CE 0
@@ -18,7 +19,6 @@
 
 #define uC_serial  9600 // velocidade de comunicação do micro via porta serial
 #define baseID 255
-
 
 RF24                          radio(CE, CSN); // CE, CSN
 RF24Network                   network(radio);
@@ -104,6 +104,33 @@ class Received_data
     }
   };
 
+
+
+//=================================== Wifi Config =====================================
+const char *ssid = "Xaiomi 12 Lite"; // Enter your WiFi name
+const char *password = "Hend3011";  // Enter WiFi password// MQTT Broker
+const char *mqtt_broker = "test.mosquitto.org"; // Enter your WiFi or Ethernet IP
+const char *topic = "leo";
+const int mqtt_port = 1883;
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+void callback(char *topic, byte *payload, unsigned int length) 
+{
+ Serial.print("Message arrived in topic: ");
+ Serial.println(topic);
+ Serial.print("Message:");
+ 
+ for (int i = 0; i < length; i++)
+{
+  Serial.print((char) payload[i]);
+ }
+ 
+ Serial.println();
+ Serial.println(" - - - - - - - - - - - -");
+}
+
+// ===================================================================================
 // ==========================================Funções de interpretação e tratamento de mensagens============================================
 
 void interpret_server_message()
@@ -254,14 +281,51 @@ void setup()
     // if mesh.begin() returns false for a master node, then radio.begin() returned false.
     Serial.println(F("Hardware offline."));
   }
-
+  // connecting to a WiFi network
+   WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) 
+  {
+    delay(500);
+    Serial.println("Connecting to WiFi..");
+  }
+ 
+  Serial.println("Connected to the WiFi network");
+ 
+  //connecting to a mqtt broker
+  client.setServer(mqtt_broker, mqtt_port);
+  client.setCallback(callback);
+  
+  while (!client.connected()) 
+  {
+  String client_id = "esp8266-client-";
+  client_id += String(WiFi.macAddress());
+  
+  Serial.printf("The client %s connects to mosquitto mqtt broker\n", client_id.c_str());
+  
+  if (client.connect(client_id.c_str())) 
+  {
+    Serial.println("Public emqx mqtt broker connected");
+  } 
+  else 
+  {
+    Serial.print("failed with state ");
+    Serial.print(client.state());
+    delay(2000);
+  }
+  }
+  // publish and subscribe
+  client.publish(topic, "Central Online");
+  client.subscribe(topic);
+  
 }
+
 //tempo máximo que a central fica no loop principal antes de reinicar tudo
 
 void loop()
 {
   mesh.update();
   mesh.DHCP();
+  client.loop();
   listen_to_network();
   if received_d_message()
   {
@@ -272,6 +336,7 @@ void loop()
     }
     set_received_d_message(0);
   }
+  client.publish()
   listen_to_server();
   delay(1);
 }
