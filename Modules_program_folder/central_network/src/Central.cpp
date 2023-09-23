@@ -7,6 +7,7 @@
 #include <RF24Mesh.h>
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+#include <TaskScheduler.h>
 
 #if defined(ARDUINO_ARCH_ESP8266)   // configuração para ESP8266
   #define CE 0
@@ -872,7 +873,7 @@ void setup()
   radio.begin();
   radio.setPALevel(RF24_PA_MIN);
   radio.setChannel(125);
-
+  ESP.wdtDisable();
   EEPROM.begin(4000);
 
   // Connect to the mesh
@@ -887,6 +888,7 @@ void setup()
   {
     delay(500);
     Serial.println("Connecting to WiFi..");
+    yield();
   }
   
   Serial.println("Connected to the WiFi network");
@@ -914,9 +916,8 @@ void setup()
   }
 }
  
- // publish and subscribe
- client.publish(topic, "Central Online");
-
+  // publish and subscribe
+  client.publish(topic, "Central Online");
 }
 //tempo máximo que a central fica no loop principal antes de reinicar tudo
 
@@ -955,6 +956,8 @@ void loop()
     minha_rede.print_mesh_stattus();
     minha_rede.set_network_changed(0);
   }
+  yield();
+  ESP.wdtFeed();
   //ESP.deepSleep(5e6);
   //delay(t_cycle-tempo_final_ciclo);
 }
