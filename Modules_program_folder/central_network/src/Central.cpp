@@ -119,9 +119,6 @@ void listen_to_server()
     }
   }
 }
-
-float umidade_do_solo = 0;
-float *umidade_do_solo_ptr = &umidade_do_solo;
 //---------------------------------------------< configurando fila de dados para sevidor >----------------------------------------------------------------------------------
 
 const int TAMANHO_FILA = 254;
@@ -531,61 +528,6 @@ class Network_configuration
 };
 
 Network_configuration minha_rede;
-// ==========================================< Funções para comunicação com o servidor >============================================
-String inputData = ""; // Used to store the received characters
-
-void listen_to_server()
-{
-  if (Serial.available())
-  {
-    char c = Serial.read();
-    
-    if (c == '\r') // Check if Enter key is pressed
-    {
-      // Process the received data
-      inputData.trim();
-      if (inputData.length() == 2)
-      {
-        char data[2];
-        data[0] = inputData[0];
-        data[1] = inputData[1];
-
-        char* server_online_ptr = &server_online[0];
-        *server_online_ptr = data[0];
-        *(server_online_ptr + 1) = data[1];
-
-        if (data[0] == '0' && data[1] == '0')
-        {
-          *server_online_ptr = false;
-          Serial.println("Server OFF");
-        }
-        else if (data[0] == '1' && data[1] == '0')
-        {
-          *server_online_ptr = false;
-          Serial.println("Server OFF");
-        }
-        else if (data[0] == '0' && data[1] == '1')
-        {
-          Serial.println("Irrigação desligada");
-        }
-        else if (data[0] == '1' && data[1] == '1')
-        {
-          Serial.println("Irrigação ligada");
-        }
-
-        Serial.flush();
-      }
-      
-      // Reset the input data for the next input
-      inputData = "";
-    }
-    else
-    {
-      inputData += c;
-    }
-  }
-}
-
 
 // ==========================================< Funções para interpretação e tratamento de mensagens >============================================
 
