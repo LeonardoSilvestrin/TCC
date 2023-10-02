@@ -1,5 +1,5 @@
 /*
-  mosquitto_sub -h test.mosquitto.org -t "leo"
+  mosquitto_sub -h test.mosquitto.org -t "TCC_horta_teste1"
 */
 
 //Include Libraries
@@ -50,7 +50,7 @@ float *umidade_do_solo_ptr = &umidade_do_solo;
 const char *ssid = "Xaiomi 12 Lite"; // Enter your WiFi name
 const char *password = "Hend3011";  // Enter WiFi password// MQTT Broker
 const char *mqtt_broker = "test.mosquitto.org"; // Enter your WiFi or Ethernet IP
-const char *topic = "leo";
+const char *topic = "TCC_horta_teste1";
 const int mqtt_port = 1883;
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -203,7 +203,7 @@ class Received_data
       if(server_online)
       {
         String data  = String(dado.id) + ","+ String(dado.bateria) + ","+ String(dado.temperatura) + "," + String(dado.umidade_do_solo);
-        client.publish("leo",data.c_str());
+        client.publish(topic,data.c_str());
 
         Serial.println("Dados Enviados para o servidor: ");
         Serial.print("ID: ");
