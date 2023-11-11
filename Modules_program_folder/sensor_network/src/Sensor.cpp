@@ -222,8 +222,8 @@ void setup()
   // EEPROM_save_id(myID);
 }
 
-const float msec_to_mins = 60UL*1000ul;
-unsigned long t_cycle = 10000; //.33*msec_to_mins;
+const float mins_to_msec = 60UL*1000ul;
+unsigned long t_cycle = 5000; //.33*mins_to_msec;
 
 void loop() 
 { 

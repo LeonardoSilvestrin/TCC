@@ -200,6 +200,7 @@ class Received_data
     // Simulação do envio de dados para o servidor (substitua pelo código de envio real)
     bool enviarDadoParaServidor(DadoSensor& dado) 
     {
+      if(dado.id == 0){ESP.restart();}
       if(server_online)
       {
         String data  = String(dado.id) + ","+ String(dado.bateria) + ","+ String(dado.temperatura) + "," + String(dado.umidade_do_solo);
@@ -957,7 +958,7 @@ void loop()
   {
     Serial.print("Network changed: ");
     Serial.println(minha_rede.get_network_changed());
-    // minha_rede.save_network_config();
+    minha_rede.save_network_config();
     minha_rede.print_mesh_stattus();
     minha_rede.set_network_changed(0);
   }
