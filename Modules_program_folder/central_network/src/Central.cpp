@@ -124,6 +124,36 @@ void listen_to_server()
     }
   }
 }
+
+void reconnect() 
+{
+  unsigned long connection_timeout_timer = millis();
+  while (!client.connected() && (millis() - connection_timeout_timer < 10000))
+  {
+    Serial.println("Reconectando ao servidor MQTT...");
+    if (client.connect(mqtt_broker)) 
+    {
+      Serial.println("connected");
+      client.subscribe(topic);
+    } 
+    else 
+    {
+      Serial.print("failed, rc=");
+      Serial.println(client.state());
+      delay(500);
+    }
+    ESP.wdtFeed();
+    yield();
+  }
+  if (client.connected())
+  {
+     //connecting to a mqtt broker
+    // publish and subscribe
+    client.publish(topic, "Central Online");
+  }
+  Serial.println("Saiu do loop");
+}
+
 //---------------------------------------------< configurando fila de dados para sevidor >----------------------------------------------------------------------------------
 
 const int TAMANHO_FILA = 254;
@@ -888,51 +918,48 @@ void setup()
   }
   // connecting to a WiFi network
   WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) 
+
+  unsigned long startTime_wifi = millis();
+  unsigned long Timeout_wifi = 10000;
+  // Tenta conectar ao WiFi por até 10 segundos
+  while (WiFi.status() != WL_CONNECTED && millis() - startTime_wifi < Timeout_wifi) 
   {
     delay(500);
-    Serial.println("Connecting to WiFi..");
+    Serial.println("Connecting to WiFi...");
     yield();
     ESP.wdtFeed();
   }
-  
-  Serial.println("Connected to the WiFi network");
-  
-  //connecting to a mqtt broker
+  if (WiFi.status() == WL_CONNECTED)
+  {
+  Serial.println("Wi-fi conectado com sucesso.");
+  Serial.println("Estabelecendo conexão com o MQTT broker.");
   client.setServer(mqtt_broker, mqtt_port);
   client.setCallback(callback);
-  
-  while (!client.connected()) 
+  unsigned long startTime_server = millis();
+  unsigned long Timeout_server = 10000;
+  // Tenta conectar ao WiFi por até 10 segundos
+  while (WiFi.status() != WL_CONNECTED && millis() - startTime_server < Timeout_server) 
   {
-  String client_id = "esp8266-client-";
-  client_id += String(WiFi.macAddress());
-  
-  Serial.printf("The client %s connects to mosquitto mqtt broker\n", client_id.c_str());
-  
-  if (client.connect(client_id.c_str())) 
-  {
-    Serial.println("Public emqx mqtt broker connected");
-  } 
-  else 
-  {
-    Serial.print("failed with state ");
-    Serial.print(client.state());
-    delay(2000);
+    reconnect();
   }
+  }
+  else{Serial.println("Wi-Fi desconectado, iniciando modo offline.");}
 }
- 
-  // publish and subscribe
-  client.publish(topic, "Central Online");
-}
-//tempo máximo que a central fica no loop principal antes de reinicar tudo
+
 
 int irr_id = 1;
 void loop() 
 {  
   mesh.update();
   mesh.DHCP();
+ /*
+  if (WiFi.status() != WL_CONNECTED) 
+  {
+    Serial.println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+    reconnect();
+  }
+ */ 
   listen_to_server();
-  client.loop();
   if (strcmp(server_online, "01") == 0 || strcmp(server_online, "11") == 0)
   {
     dados_na_fila.enviarDadosArmazenados();
