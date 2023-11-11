@@ -961,16 +961,12 @@ void setup()
 int irr_id = 1;
 void loop() 
 { 
-  Serial.println("pi");
   mesh.update();
   mesh.DHCP();
- /*
   if (WiFi.status() != WL_CONNECTED) 
   {
-    Serial.println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
     reconnect();
   }
- */ 
   listen_to_server();
   if (strcmp(server_online, "01") == 0 || strcmp(server_online, "11") == 0)
   {
