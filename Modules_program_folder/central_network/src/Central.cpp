@@ -964,9 +964,14 @@ void loop()
 { 
   mesh.update();
   mesh.DHCP();
+  client.loop();
   if (WiFi.status() != WL_CONNECTED) 
   {
-    reconnect();
+    unsigned long lastReconnectAttempt = millis();
+    while(millis() - lastReconnectAttempt > 1000) {
+      reconnect();
+      lastReconnectAttempt = millis();
+    }
   }
   listen_to_server();
   if (strcmp(server_online, "01") == 0 || strcmp(server_online, "11") == 0)
