@@ -238,7 +238,7 @@ class Received_data
       if(dado.id == 0){ESP.restart();}
       if(server_online)
       {
-        String data  = String(dado.id) + ","+ String(dado.bateria) + ","+ String(dado.temperatura) + "," + String(dado.umidade_do_solo);
+        String data  = String((int)dado.id) + ","+ String((int)dado.bateria) + ","+ String((int)dado.temperatura) + "," + String((int)dado.umidade_do_solo);
         client.publish(topic,data.c_str());
 
         Serial.println("Dados Enviados para o servidor: ");

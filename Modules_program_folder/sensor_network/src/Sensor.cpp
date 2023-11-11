@@ -246,7 +246,7 @@ void loop()
       float bateria = 100;
       float temperatura = mydht.getTemperature();
       int umidade_do_solo_in = analogRead(A0);
-      float umidade_do_solo = map(umidade_do_solo_in,150,800,100,0);
+      float umidade_do_solo = map(umidade_do_solo_in,0,1024,100,0);
       if(send_data(bateria, temperatura, umidade_do_solo))
       {
         sent_data = true;
