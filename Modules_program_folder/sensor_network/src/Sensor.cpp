@@ -179,9 +179,8 @@ void setup()
   
   //--------------------------< Extraindo ID registrado na EEPROM >-------------------------------------
   // Inicia a EEPROM e lẽ o último ID registrado
-  // EEPROM.begin();
-  // myOldID = EEPROM_get_id();
-  myOldID = 255;
+  EEPROM.begin();
+  myOldID = EEPROM_get_id();
   //---------------------------------------------------------------
   // Printa o último ID de rede do módulo bem como o número de série
 
@@ -219,11 +218,11 @@ void setup()
     while (1){}      
   }
   //---------------------------------------------------------------
-  // EEPROM_save_id(myID);
+  EEPROM_save_id(myID);
 }
 
 const float msec_to_mins = 60UL*1000ul;
-unsigned long t_cycle = 10000; //.33*msec_to_mins;
+unsigned long t_cycle = 1*msec_to_mins; //.33*msec_to_mins;
 
 void loop() 
 { 

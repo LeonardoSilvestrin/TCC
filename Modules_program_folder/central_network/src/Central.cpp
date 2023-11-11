@@ -128,30 +128,35 @@ void listen_to_server()
 void reconnect() 
 {
   unsigned long connection_timeout_timer = millis();
+  Serial.println("Reconectando ao servidor MQTT");
   while (!client.connected() && (millis() - connection_timeout_timer < 10000))
   {
-    Serial.println("Reconectando ao servidor MQTT...");
     if (client.connect(mqtt_broker)) 
     {
-      Serial.println("connected");
+      Serial.println("");
+      Serial.println("Conectado");
       client.subscribe(topic);
     } 
     else 
     {
-      Serial.print("failed, rc=");
-      Serial.println(client.state());
-      delay(500);
+      Serial.print(".");
     }
     ESP.wdtFeed();
     yield();
+    delay(500);
   }
+
   if (client.connected())
   {
      //connecting to a mqtt broker
     // publish and subscribe
     client.publish(topic, "Central Online");
   }
-  Serial.println("Saiu do loop");
+  else
+  {
+    Serial.print("failed, rc=");
+    Serial.println(client.state());
+  }
 }
 
 //---------------------------------------------< configurando fila de dados para sevidor >----------------------------------------------------------------------------------
@@ -898,50 +903,56 @@ bool change_irrigation_status(int id_irrigador)
 
 void setup() 
 {
+  ESP.wdtDisable();
+  EEPROM.begin(4000);
+  
   Serial.begin(uC_serial);
   Serial.flush();
   Serial.println("\n########################################################################");
-  mesh.setNodeID(0); // 0 -> central
   Serial.println(mesh.getNodeID());
+  
   radio.setRetries(5, 10);
   radio.begin();
   radio.setPALevel(RF24_PA_MIN);
   radio.setChannel(125);
-  ESP.wdtDisable();
-  EEPROM.begin(4000);
-
-  // Connect to the mesh
+  
+  mesh.setNodeID(0); // ID 0 -> central
+  // Conectando à malha
   if (!mesh.begin(125,RF24_250KBPS)) 
   {
-    // if mesh.begin() returns false for a master node, then radio.begin() returned false.
+    // se mesh.begin retornar falso para a central, significa que o rádio não está funcionando
     Serial.println(F("Hardware offline."));
   }
-  // connecting to a WiFi network
+  // iniciando conexão Wi-Fi
   WiFi.begin(ssid, password);
-
+  
   unsigned long startTime_wifi = millis();
   unsigned long Timeout_wifi = 10000;
   // Tenta conectar ao WiFi por até 10 segundos
+  Serial.print("Conectando ao WiFi");
   while (WiFi.status() != WL_CONNECTED && millis() - startTime_wifi < Timeout_wifi) 
   {
-    delay(500);
-    Serial.println("Connecting to WiFi...");
+    delay(1000);
+    Serial.print(".");
     yield();
     ESP.wdtFeed();
   }
   if (WiFi.status() == WL_CONNECTED)
   {
+  Serial.println(""); 
   Serial.println("Wi-fi conectado com sucesso.");
   Serial.println("Estabelecendo conexão com o MQTT broker.");
+  
   client.setServer(mqtt_broker, mqtt_port);
   client.setCallback(callback);
+  
   unsigned long startTime_server = millis();
   unsigned long Timeout_server = 10000;
   // Tenta conectar ao WiFi por até 10 segundos
-  while (WiFi.status() != WL_CONNECTED && millis() - startTime_server < Timeout_server) 
-  {
-    reconnect();
-  }
+    while (!client.connected() && millis() - startTime_server < Timeout_server) 
+    {
+      reconnect();
+    }
   }
   else{Serial.println("Wi-Fi desconectado, iniciando modo offline.");}
 }
@@ -949,7 +960,8 @@ void setup()
 
 int irr_id = 1;
 void loop() 
-{  
+{ 
+  Serial.println("pi");
   mesh.update();
   mesh.DHCP();
  /*
