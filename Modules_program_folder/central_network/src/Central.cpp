@@ -235,6 +235,7 @@ class Received_data
     // Simulação do envio de dados para o servidor (substitua pelo código de envio real)
     bool enviarDadoParaServidor(DadoSensor& dado) 
     {
+      if(dado.id == 0){ESP.restart();}
       if(server_online)
       {
         String data  = String(dado.id) + ","+ String(dado.bateria) + ","+ String(dado.temperatura) + "," + String(dado.umidade_do_solo);

@@ -114,6 +114,7 @@ bool send_data(float bateria, float temperatura, float umidade_do_solo)
 
 bool connect_to_mesh(int ID)
 {
+  digitalWrite(LED_pin,1); 
   mesh.setNodeID(ID);
   // Connect to the mesh
   Serial.println(F("Conectando à rede..."));
@@ -138,6 +139,7 @@ bool connect_to_mesh(int ID)
   {
     Serial.print("Conexão Estabelecida com sucesso, meu id: ");
     Serial.println(mesh.getNodeID());
+    digitalWrite(LED_pin,0);
   }
   return 1;
 }
@@ -156,6 +158,7 @@ int EEPROM_get_id()
   }
   return (int)id;
 }
+
 
 void setup() 
 {
@@ -215,6 +218,7 @@ void setup()
     myID = baseID;
     mesh.releaseAddress();
     Serial.print("Desconectado da rede.");
+    digitalWrite(LED_pin,HIGH);
     while (1){}      
   }
   //---------------------------------------------------------------
@@ -222,7 +226,7 @@ void setup()
 }
 
 const float msec_to_mins = 60UL*1000ul;
-unsigned long t_cycle = 1*msec_to_mins; //.33*msec_to_mins;
+unsigned long t_cycle = 5000;//1*msec_to_mins;
 
 void loop() 
 { 
@@ -243,14 +247,6 @@ void loop()
       float temperatura = mydht.getTemperature();
       int umidade_do_solo_in = analogRead(A0);
       float umidade_do_solo = map(umidade_do_solo_in,150,800,100,0);
-      if (umidade_do_solo<50)
-      {
-        digitalWrite(LED_pin,HIGH);
-      }
-      else
-      {
-        digitalWrite(LED_pin,LOW);
-      }
       if(send_data(bateria, temperatura, umidade_do_solo))
       {
         sent_data = true;
