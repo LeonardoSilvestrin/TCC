@@ -129,9 +129,13 @@ void reconnect()
 {
   unsigned long connection_timeout_timer = millis();
   Serial.println("Reconectando ao servidor MQTT");
+
   while (!client.connected() && (millis() - connection_timeout_timer < 10000))
   {
-    if (client.connect(mqtt_broker)) 
+      String client_id = "esp8266-client-";
+      client_id += String(WiFi.macAddress());
+      Serial.printf("The client %s connects to mosquitto mqtt broker\n", client_id.c_str());
+    if (client.connect(client_id.c_str())) 
     {
       Serial.println("");
       Serial.println("Conectado");

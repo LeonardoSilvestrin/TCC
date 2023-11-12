@@ -200,7 +200,7 @@ void setup()
 	Serial.println();
   //---------------------------------------------------------------
   // conecta na malha com o ID antigo (ID 255 para novos sensores)
-  
+  myID = myOldID;
   connect_to_mesh(myID);  
   mesh.update();
   myID = id_update();
@@ -226,7 +226,7 @@ void setup()
 }
 
 const float msec_to_mins = 60UL*1000ul;
-unsigned long t_cycle = 5000;//1*msec_to_mins;
+unsigned long t_cycle = 1*msec_to_mins;
 
 void loop() 
 { 
