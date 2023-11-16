@@ -124,7 +124,6 @@ void listen_to_server()
     }
   }
 }
-
 bool reconnect() 
 {
   unsigned long connection_timeout_timer = millis();
@@ -184,7 +183,7 @@ int reconnect_all()
         ESP.wdtFeed();
       }
       if (WiFi.status() == WL_CONNECTED)
-        {
+      {
         Serial.println(""); 
         Serial.println("Wi-fi conectado com sucesso.");
         Serial.println("Estabelecendo conexão com o MQTT broker.");
@@ -197,12 +196,13 @@ int reconnect_all()
           if(reconnect()){return 2;}
           lastReconnectAttempt = millis();
         }
+        Serial.println("Falha em conectar, operando offline.");
         return 1;
       }
       else
       {
-        return 0;
         Serial.println("Falha em conectar, operando offline.");
+        return 0;
       }
     }
     return 3;
@@ -447,8 +447,10 @@ class Network_configuration
       
     }
     
+    
     /*recover_hardware_ids com o print da eeprom para testes
-    void recover_hardware_unique_ids_and_print()
+    */
+   void recover_hardware_unique_ids_and_print()
     {
       uint8_t buffer_unique_hardware_id_list[sizeof(unique_hardware_id_list)];
       EEPROM.get(EEPROM_index_unique_hardware_id_list,buffer_unique_hardware_id_list);
@@ -466,7 +468,7 @@ class Network_configuration
         }
         Serial.println("");
       }
-    }*/
+    }/**/
 
     void recover_hardware_unique_ids()
     {
@@ -488,15 +490,31 @@ class Network_configuration
     {
       recover_num_of_modules();
       recover_ids_in_use();
-      //recover_hardware_unique_ids();
-      recover_hardware_unique_ids();
+      recover_hardware_unique_ids_and_print();
+     // recover_hardware_unique_ids();
       recover_module_types();
+      // a partir dos dados adicionar tudo à rede
+      for(int i = 1; i<num_of_modules;i++) // max size = (int)sizeof(unique_hardware_id_list)/8
+      {
+        if (ids_in_use[i]==1)
+        {
+          if(module_types[i-1]==1)
+          {
+            add_entity(i,'i',&unique_hardware_id_list[8*(i-1)],0);
+          }
+          if(module_types[i-1]==0)
+          {
+            add_entity(i,'s',&unique_hardware_id_list[8*(i-1)],0);
+          }
+        }
+      }
+      Serial.println("");
     }
   
     // adiciona entidade na rede
-    void add_entity(int id, char sensor_type, uint8_t* unique_hardware_id)
+    void add_entity(int id, char sensor_type, uint8_t* unique_hardware_id, bool new_sensor)
     {
-      if (num_of_modules == 254)
+      if (num_of_modules >= 254)
       {
         Serial.println("Erro: Número máximo de módulos atingido.");
         while (1){}
@@ -517,7 +535,7 @@ class Network_configuration
 
         this->module_types[id] = true;
       }
-      this->num_of_modules++;
+      if(new_sensor){this->num_of_modules++;}
       this->ids_in_use[id]=true;
       Serial.print("Unique hardware id computado: ");
       for(int i=0;i<8;i++)
@@ -527,7 +545,7 @@ class Network_configuration
         Serial.print(" ");
       }
       Serial.println("");
-      this-> network_changed = true;
+      if(new_sensor){this-> network_changed = true;}
     }
     
     // remove entidade da rede
@@ -590,10 +608,11 @@ class Network_configuration
     //checa se o ID já está registrado na rede
     bool is_id_in_the_mesh(int id)
     {
-      uint8_t number_of_ids_in_use = mesh.addrListTop;
+      if(id == 255){return 1;}
+      uint8_t number_of_ids_in_use = num_of_modules;
       for(int i = 0;i<number_of_ids_in_use;i++)
       {
-        if((uint8_t)id == mesh.addrList[i].nodeID)
+        if(ids_in_use[id]==1)
         {
           return 1;
         }  
@@ -681,7 +700,6 @@ bool answer_id_request_and_listen_to_ACK(int id, int message_to)
   else // se o write nao teve sucesso a central não deve computar mudanças na rede
   {
     Serial.println("Sem resposta do Módulo solicitante");
-    minha_rede.print_mesh_stattus();
     return 0;
   }
 }
@@ -697,16 +715,18 @@ bool process_c_message(RF24NetworkHeader header)
   uint8_t uniqueID_and_type[9];
 
   network.read(header, uniqueID_and_type, sizeof(uniqueID_and_type));
-  
-  
+
   int requester_network_id =    (int)mesh.getNodeID(header.from_node);
   uint8_t* requester_hardware_id = uniqueID_and_type;
   char sensor_type = (char)requester_hardware_id[8];
   //--------------------------prints-------------------------
+  Serial.println(requester_network_id);
+  Serial.println(minha_rede.is_id_in_the_mesh(requester_network_id));
   Serial.println("Solicitação de configuração recebida.");
   Serial.print("ID Hardware: ");
   for(int i =0 ; i<8;i++)
-  {
+  {network.read(header, uniqueID_and_type, sizeof(uniqueID_and_type));
+
     Serial.print(requester_hardware_id[i],HEX);
     Serial.print(" ");
   }
@@ -740,7 +760,7 @@ bool process_c_message(RF24NetworkHeader header)
       new_sensor_id = minha_rede.generate_new_ID();
       if(answer_id_request_and_listen_to_ACK(new_sensor_id,requester_network_id))
       {
-        minha_rede.add_entity(new_sensor_id,sensor_type,requester_hardware_id);
+        minha_rede.add_entity(new_sensor_id,sensor_type,requester_hardware_id,1);
         // entrada_novo_modulo = false;
         return 1;
       }
@@ -786,7 +806,7 @@ bool process_c_message(RF24NetworkHeader header)
       new_sensor_id = requester_network_id;
       if(answer_id_request_and_listen_to_ACK(new_sensor_id,requester_network_id))
       {
-        minha_rede.add_entity(new_sensor_id,sensor_type,requester_hardware_id);
+        minha_rede.add_entity(new_sensor_id,sensor_type,requester_hardware_id,1);
         // entrada_novo_modulo = false;
         return 1;
       }
@@ -847,11 +867,11 @@ bool process_c_message(RF24NetworkHeader header)
 
 bool process_d_message(RF24NetworkHeader header)
 {
-  int id_sensor = mesh.getNodeID(header.from_node);
+  int id_sensor = (int)mesh.getNodeID(header.from_node);
   float data_to_receive[3];
   /*
   Serial.print("id recebido: ");
-  Serial.println(id_sensor);
+  Serial.println(id_sensor);peek
   minha_rede.print_mesh_stattus();
   Serial.print("id na rede?");
   Serial.println(minha_rede.is_id_in_the_mesh(id_sensor));
@@ -883,10 +903,13 @@ void message_discard(RF24NetworkHeader header)
     network.read(header,0,0);
     {
       int aux_msg = 0;
-      int id_sensor = mesh.getNodeID(header.from_node);
+      int id_sensor = (int)mesh.getNodeID(header.from_node);
       mesh.write(&aux_msg,'a',id_sensor,sizeof(int));
       Serial.print("Mensagem de dados vinda de header inválido, ID: ");
       Serial.println(id_sensor);
+      Serial.print("HEADER: ");
+      Serial.println((char)header.type);
+      
     }
 }
 // ===============================================================================================================================================
@@ -896,11 +919,10 @@ bool listen_to_network()
   {
     RF24NetworkHeader header;
     network.peek(header); //ler o header da próxima mensagem da fila
-    if(is_id_valid(mesh.getNodeID(header.from_node))&&minha_rede.is_id_in_the_mesh(mesh.getNodeID(header.from_node)))
+    if((is_id_valid(mesh.getNodeID(header.from_node))) && (minha_rede.is_id_in_the_mesh(mesh.getNodeID(header.from_node)) || (char)header.type == 'c'))
     {
-      switch (header.type) 
+      switch((char)header.type) 
       {
-        // Display the incoming millis() values from the sensor nodes
         case 'c':
           process_c_message(header);
           return 0;
@@ -968,6 +990,7 @@ void setup()
   radio.setPALevel(RF24_PA_MIN);
   radio.setChannel(125);
   
+  minha_rede.recover_network_config();
   mesh.setNodeID(0); // ID 0 -> central
   // Conectando à malha
   if (!mesh.begin(125,RF24_250KBPS)) 
@@ -975,6 +998,7 @@ void setup()
     // se mesh.begin retornar falso para a central, significa que o rádio não está funcionando
     Serial.println(F("Hardware offline."));
   }
+
   // iniciando conexão Wi-Fi
   WiFi.begin(ssid, password);
   
@@ -1048,9 +1072,7 @@ void loop()
 */
   if (minha_rede.get_network_changed())
   {
-    Serial.print("Network changed: ");
-    Serial.println(minha_rede.get_network_changed());
-    // minha_rede.save_network_config();
+    minha_rede.save_network_config();
     minha_rede.print_mesh_stattus();
     minha_rede.set_network_changed(0);
   }

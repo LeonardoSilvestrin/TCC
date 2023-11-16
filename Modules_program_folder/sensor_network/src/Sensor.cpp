@@ -108,6 +108,7 @@ bool send_data(float bateria, float temperatura, float umidade_do_solo)
     delay(1);
   }
   Serial.println("Timeout. Sem resposta da central");
+  mesh.renewAddress();
   return 0;
 }
 
