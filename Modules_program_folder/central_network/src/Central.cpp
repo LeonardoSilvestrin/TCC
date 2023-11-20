@@ -626,6 +626,7 @@ class Network_configuration
     {
       if(id == 255){return 1;}
       uint8_t number_of_ids_in_use = num_of_modules;
+      Serial.print(number_of_ids_in_use);
       for(int i = 0;i<number_of_ids_in_use;i++)
       {
         if(ids_in_use[id]==1)
@@ -638,7 +639,7 @@ class Network_configuration
     
     uint8_t* get_module_recorded_unique_id(int id)
     {
-      return &unique_hardware_id_list[8*(id)];
+      return &unique_hardware_id_list[8*(id-1)];
     }
 
     bool get_network_changed()
@@ -891,6 +892,7 @@ bool process_d_message(RF24NetworkHeader header)
   
   if(id_sensor >0 && id_sensor < 255 && minha_rede.is_id_in_the_mesh(id_sensor))
   {
+    Serial.print("entrouaqui");
     if (network.available()) 
     {
       network.read(header, data_to_receive, sizeof(data_to_receive));
@@ -931,7 +933,7 @@ bool listen_to_network()
   {
     RF24NetworkHeader header;
     network.peek(header); //ler o header da próxima mensagem da fila
-    if((is_id_valid(mesh.getNodeID(header.from_node))) && (minha_rede.is_id_in_the_mesh(mesh.getNodeID(header.from_node)) || header.type == 'c'))
+    if((is_id_valid(mesh.getNodeID(header.from_node))) && (minha_rede.is_id_in_the_mesh(mesh.getNodeID(header.from_node))))
     {
       switch((char)header.type) 
       {
