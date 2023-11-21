@@ -80,7 +80,7 @@ def print_results(x_values,y_values):
         
 
     plt.axhline(average, color='#FF0000FF', linestyle='--')
-    ax.set_ylim(0, 4)
+    ax.set_ylim(0, 1)
     # Set a name or title for the figure
 
 

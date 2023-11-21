@@ -41,9 +41,9 @@ bool saida_modulo =         false;
 int modulo_inativo =        0;
 bool prev_irr_status = 0;
 bool* prev_irr_status_ptr = &prev_irr_status;
-
 float umidade_do_solo = 0;
 float *umidade_do_solo_ptr = &umidade_do_solo;
+unsigned long ti = millis();
 
 /* ==========================================< WIFI CONFIG >============================================
 */
@@ -136,8 +136,13 @@ bool reconnect()
       Serial.printf("The client %s connects to mosquitto mqtt broker\n", client_id.c_str());
     if (client.connect(client_id.c_str())) 
     {
+      
       Serial.println("");
+      unsigned long tf = millis();
       Serial.println("Conectado");
+      Serial.print("Tempo total de execução: ");
+      Serial.print((tf-ti)/1000);
+      Serial.println(" s");
       client.subscribe(topic);
     } 
     else 
@@ -162,6 +167,7 @@ bool reconnect()
     Serial.println(client.state());
     return 0;
   }
+  delay(1);
 }
 
 int reconnect_all()
@@ -177,13 +183,14 @@ int reconnect_all()
       Serial.print("Tentando reconectar ao WiFi");
       while (WiFi.status() != WL_CONNECTED && millis() - startTime_wifi < Timeout_wifi) 
       {
-        delay(1000);
+        delay(100);
         Serial.print(".");
         yield();
         ESP.wdtFeed();
       }
       if (WiFi.status() == WL_CONNECTED)
       {
+        delay(1);
         Serial.println(""); 
         Serial.println("Wi-fi conectado com sucesso.");
         Serial.println("Estabelecendo conexão com o MQTT broker.");
@@ -196,12 +203,21 @@ int reconnect_all()
           if(reconnect()){return 2;}
           lastReconnectAttempt = millis();
         }
+
+        unsigned long tf = millis();
         Serial.println("Falha em conectar, operando offline.");
+        Serial.print("Tempo total de execução: ");
+        Serial.print((tf-ti)/1000);
+        Serial.println(" s");
         return 1;
       }
       else
       {
+        unsigned long tf = millis();
         Serial.println("Falha em conectar, operando offline.");
+        Serial.print("Tempo total de execução: ");
+        Serial.print((tf-ti)/1000);
+        Serial.println(" s");
         return 0;
       }
     }
@@ -622,7 +638,7 @@ class Network_configuration
     
     uint8_t* get_module_recorded_unique_id(int id)
     {
-      return &unique_hardware_id_list[8*(id-1)];
+      return &unique_hardware_id_list[8*(id)];
     }
 
     bool get_network_changed()
@@ -720,10 +736,8 @@ bool process_c_message(RF24NetworkHeader header)
   uint8_t* requester_hardware_id = uniqueID_and_type;
   char sensor_type = (char)requester_hardware_id[8];
   //--------------------------prints-------------------------
-  Serial.println(requester_network_id);
-  Serial.println(minha_rede.is_id_in_the_mesh(requester_network_id));
   Serial.println("Solicitação de configuração recebida.");
-  Serial.print("ID Hardware: ");
+  Serial.print("Hardware ID: ");
   for(int i =0 ; i<8;i++)
   {network.read(header, uniqueID_and_type, sizeof(uniqueID_and_type));
 
@@ -731,11 +745,11 @@ bool process_c_message(RF24NetworkHeader header)
     Serial.print(" ");
   }
   Serial.println("");
-  Serial.print("ID Network: ");
+  Serial.print("Network ID: ");
   Serial.println(requester_network_id);
   Serial.print("Sensor sensor_type: ");
   Serial.println((char)requester_hardware_id[8]);
-  minha_rede.print_mesh_stattus();
+  //minha_rede.print_mesh_stattus();
   //---------------------------------------------------------------
   // *********************************************************************************************************************************************************************
   
@@ -788,8 +802,6 @@ bool process_c_message(RF24NetworkHeader header)
       else
       {
         Serial.println("Sensor degenerado solicitando entrada na rede, por favor certifique-se de utilizar o protocolo de retirada corretamente quando for retirar um sensor");
-        Serial.println("Resetando ID...");
-        
         new_sensor_id = baseID;
         answer_id_request_and_listen_to_ACK(new_sensor_id,requester_network_id);
         return 1;
@@ -845,7 +857,7 @@ bool process_c_message(RF24NetworkHeader header)
       }
       else
       {
-        new_sensor_id = baseID;
+        new_sensor_id = 256;
         Serial.println("Erro: Sensor degenerado solicitando entrada na rede, entrada negada.\nResetando EEPROM do módulo");
         answer_id_request_and_listen_to_ACK(new_sensor_id,requester_network_id);
         return 0;
@@ -919,7 +931,7 @@ bool listen_to_network()
   {
     RF24NetworkHeader header;
     network.peek(header); //ler o header da próxima mensagem da fila
-    if((is_id_valid(mesh.getNodeID(header.from_node))) && (minha_rede.is_id_in_the_mesh(mesh.getNodeID(header.from_node)) || (char)header.type == 'c'))
+    if((is_id_valid(mesh.getNodeID(header.from_node))) && (minha_rede.is_id_in_the_mesh(mesh.getNodeID(header.from_node)) || header.type == 'c'))
     {
       switch((char)header.type) 
       {
@@ -974,9 +986,9 @@ bool change_irrigation_status(int id_irrigador)
 
 
 
-
 void setup() 
 {
+  ti = millis();
   ESP.wdtDisable();
   EEPROM.begin(4000);
   
@@ -990,7 +1002,7 @@ void setup()
   radio.setPALevel(RF24_PA_MIN);
   radio.setChannel(125);
   
-  minha_rede.recover_network_config();
+ // minha_rede.recover_network_config();
   mesh.setNodeID(0); // ID 0 -> central
   // Conectando à malha
   if (!mesh.begin(125,RF24_250KBPS)) 
@@ -1008,7 +1020,7 @@ void setup()
   Serial.print("Conectando ao WiFi");
   while (WiFi.status() != WL_CONNECTED && millis() - startTime_wifi < Timeout_wifi) 
   {
-    delay(1000);
+    delay(100);
     Serial.print(".");
     yield();
     ESP.wdtFeed();
@@ -1023,7 +1035,7 @@ void setup()
     client.setCallback(callback);
     
     unsigned long startTime_server = millis();
-    unsigned long Timeout_server = 10000;
+    unsigned long Timeout_server = 5000;
     // Tenta conectar ao WiFi por até 10 segundos
     while (!client.connected() && millis() - startTime_server < Timeout_server) 
     {
@@ -1031,6 +1043,10 @@ void setup()
     }
   }
   else{Serial.println("Wi-Fi desconectado, iniciando modo offline.");}
+  unsigned long tf = millis();
+  Serial.print("Tempo total de execução: ");
+  Serial.print((tf-ti)/1000);
+  Serial.println(" s");
 }
 
 
@@ -1043,11 +1059,12 @@ void loop()
   mesh.DHCP();
   client.loop();
   unsigned long tempo_inicio_reconexao = millis();
-  unsigned long intervalo = 20000;
+  unsigned long intervalo = 60000;
   if(tempo_inicio_reconexao-tempo_ultima_tentativa>intervalo)
   {
     if (WiFi.status() != WL_CONNECTED || !client.connected()){reconnect_all();}
     tempo_ultima_tentativa = millis();
+    delay(10);
   }
   listen_to_server();
   if (strcmp(server_online, "01") == 0 || strcmp(server_online, "11") == 0)
@@ -1062,6 +1079,9 @@ void loop()
           change_irrigation_status(irr_id);
     }
   }
+
+
+
   listen_to_network();
 /*
   if (umidade_do_solo < 50 && prev_irr_status == 0)

@@ -47,10 +47,10 @@ int id_update()
   }
   message[8] = (uint8_t)myType;
   mesh.write(&message,'c',sizeof(message));
-  Serial.print("myID: ");
+  Serial.print("Meu ID: ");
   Serial.println(mesh.getNodeID());
   unsigned long t0 = millis();
-  while(millis()-t0<500) // fica 1 segundo em loop escutando se a central está respondendo
+  while(millis()-t0<1000) // fica 1 segundo em loop escutando se a central está respondendo
   {
     mesh.update();
     if (network.available()) 
@@ -86,7 +86,6 @@ bool send_data(float bateria, float temperatura, float umidade_do_solo)
       while(millis()-t1<1000)
       {
         mesh.update();
-        Serial.println(network.available());
         if (network.available())
         {
           RF24NetworkHeader header;
@@ -136,7 +135,7 @@ bool connect_to_mesh(int ID)
       return 0;
     }
   }
-  if (ID!= baseID)
+  if (ID!= baseID && ID != 0)
   {
     Serial.print("Conexão Estabelecida com sucesso, meu id: ");
     Serial.println(mesh.getNodeID());
@@ -184,14 +183,14 @@ void setup()
   //--------------------------< Extraindo ID registrado na EEPROM >-------------------------------------
   // Inicia a EEPROM e lẽ o último ID registrado
   EEPROM.begin();
-  myOldID = EEPROM_get_id();
+  myOldID = 1;//EEPROM_get_id();
   //---------------------------------------------------------------
   // Printa o último ID de rede do módulo bem como o número de série
 
   Serial.print("Meu último ID: ");
   Serial.println(myOldID);
   Serial.print("UniqueID: ");
-	for (size_t i = 0; i < UniqueIDsize; i++)
+	for (size_t i = 0; i < UniqueIDsize-1; i++)
 	{
 		if (UniqueID[i] < 0x10)
 			Serial.print("0");
@@ -206,28 +205,35 @@ void setup()
   mesh.update();
   myID = id_update();
   connect_to_mesh(myID);
+  if(myID==256)
+  {
+    EEPROM_save_id(baseID);
+    Serial.println("Desconectado da rede.");
+    while (1){}
+  }
   while(myID==baseID)
   {
     Serial.println("Solicitando novo id para a central...");
     myID = id_update();
     delay(1);
-    connect_to_mesh(myID);
+    if(myID!=0){connect_to_mesh(myID);}
   }
   // se a central responder a solicitação de id com 0 o sensor fica em loop infinito.
   if (myID == 0) 
   {
     myID = baseID;
     mesh.releaseAddress();
-    Serial.print("Desconectado da rede.");
     digitalWrite(LED_pin,HIGH);
+    Serial.println("Desconectado da rede.");
     while (1){}      
   }
   //---------------------------------------------------------------
+
   EEPROM_save_id(myID);
 }
 
 const float msec_to_mins = 60UL*1000ul;
-unsigned long t_cycle = 1*msec_to_mins;
+unsigned long t_cycle = 0.2*msec_to_mins;
 
 void loop() 
 { 
@@ -256,7 +262,8 @@ void loop()
     }
    unsigned long t_final_coleta_dados = millis();
    Serial.print("Fim do ciclo, tempo:");
-   Serial.println(t_final_coleta_dados);
+   Serial.print(t_final_coleta_dados-t_inicial_coleta_dados);
+   Serial.println(" Segundos.");
    Serial.print("Central recebeu dados neste ciclo? ");
    Serial.println(sent_data);
    Serial.print("Meu ID de rede:");
@@ -277,7 +284,15 @@ void loop()
     Serial.println(mesh.getNodeID());
     Serial.println("Solicitando novo id para a central...");
     myID = id_update();
-    connect_to_mesh(myID);
     delay(1);
+    connect_to_mesh(myID);
+  }
+  if (myID == 0) 
+  {
+    myID = baseID;
+    mesh.releaseAddress();
+    Serial.print("Desconectado da rede.");
+    digitalWrite(LED_pin,HIGH);
+    while (1){}      
   }
 }
